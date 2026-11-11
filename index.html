@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>しまねこトリオ旅マップ ❄️</title>
+  <title>しまねこトリオ旅マップ 🐾</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Leaflet CSS & JS (読み込み失敗を防ぐためCloudflareのCDNに変更) -->
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
@@ -19,17 +19,28 @@
     :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
     body { margin: 0; padding: 0; overflow: hidden; background-color: #f0f9ff; -webkit-tap-highlight-color: transparent; }
     
-    /* 💥 地図が消えるバグを修正: 絶対座標で画面いっぱいに強制固定 */
-    #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; width: 100%; height: 100%; }
+    /* 地図とUIを絶対座標で固定 */
+    #map { position: absolute; top: 0; left: 0; right: 0; bottom: calc(56px + var(--sab)); z-index: 1; width: 100%; }
     
-    /* UIレイヤーも画面サイズに合わせて絶対固定 */
-    #ui-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding-top: var(--sat); padding-bottom: var(--sab); }
+    /* UIレイヤー (ヘッダーや右下のボタンなど) */
+    #ui-layer { position: absolute; top: 0; left: 0; right: 0; bottom: calc(56px + var(--sab)); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding-top: var(--sat); }
     
     .pointer-events-auto { pointer-events: auto; }
     
-    #timeline-panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .timeline-hidden { transform: translateY(100%); }
-    .timeline-visible { transform: translateY(0); }
+    /* タイムライン画面 (タブ切り替え用) */
+    #timeline-panel { 
+      position: fixed; top: 0; left: 0; right: 0; bottom: calc(56px + var(--sab)); 
+      z-index: 1500; background-color: #f8fafc; padding-top: var(--sat);
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .timeline-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .timeline-visible { opacity: 1; visibility: visible; pointer-events: auto; }
+
+    /* ボトムナビゲーション */
+    #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; padding-bottom: var(--sab); }
+
+    /* スプラッシュスクリーン */
+    #splash-screen { transition: opacity 0.5s ease-out; }
 
     /* トースト通知 */
     .toast-enter { animation: slideDown 0.3s ease-out forwards; }
@@ -49,6 +60,29 @@
 </head>
 <body class="font-sans text-slate-800">
 
+  <!-- タイトル＆プレイヤー選択画面 (スプラッシュスクリーン) -->
+  <div id="splash-screen" class="fixed inset-0 bg-blue-50 z-[4000] flex flex-col items-center justify-center p-6 pt-[var(--sat)] pb-[var(--sab)]">
+    <div class="text-center mb-10">
+      <div class="text-6xl mb-4">🐾</div>
+      <h1 class="text-2xl font-extrabold text-blue-900 mb-2">しまねこトリオ旅マップ</h1>
+      <p class="text-sm font-bold text-blue-500">2023.11.30 - 12.3</p>
+    </div>
+
+    <div class="w-full max-w-sm space-y-4">
+      <p class="text-center text-sm font-bold text-slate-500 mb-4">あなたは誰ですか？</p>
+      
+      <button class="player-select-btn w-full bg-white p-4 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-center gap-3 active:scale-95 transition" data-player="ありねこ">
+        <span class="text-2xl">🐈</span> <span class="font-bold text-orange-700 text-lg">ありねこ</span>
+      </button>
+      <button class="player-select-btn w-full bg-white p-4 rounded-2xl shadow-sm border border-purple-100 flex items-center justify-center gap-3 active:scale-95 transition" data-player="ことみねこ">
+        <span class="text-2xl">🐈‍⬛</span> <span class="font-bold text-purple-700 text-lg">ことみねこ</span>
+      </button>
+      <button class="player-select-btn w-full bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-center gap-3 active:scale-95 transition" data-player="あつき">
+        <span class="text-2xl">🚲</span> <span class="font-bold text-emerald-700 text-lg">あつき</span>
+      </button>
+    </div>
+  </div>
+
   <div id="toast-container" class="fixed top-0 left-0 right-0 z-[3000] flex flex-col items-center pt-[calc(env(safe-area-inset-top)+10px)] pointer-events-none gap-2 px-4"></div>
 
   <!-- 地図コンテナ -->
@@ -56,8 +90,7 @@
 
   <!-- UIレイヤー -->
   <div id="ui-layer">
-    
-    <!-- 💥 タイトル・ヘッダー部分（レイアウト崩れを防ぐため構造を強化） -->
+    <!-- ヘッダー部分 -->
     <div class="p-4 space-y-2 pointer-events-auto w-full box-border">
       <header class="bg-white/95 backdrop-blur-md shadow-md rounded-2xl p-3 border border-blue-100 flex justify-between items-center relative z-[1001]">
         <div>
@@ -86,22 +119,17 @@
     </div>
 
     <!-- 右下ボタン群 -->
-    <div class="p-4 flex flex-col items-end gap-3 pointer-events-auto pb-6 w-full box-border">
+    <div class="p-4 flex flex-col items-end gap-3 pointer-events-auto pb-4 w-full box-border">
       <button id="btn-home" class="bg-white text-slate-600 w-12 h-12 rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-xl active:scale-90 transition"><i class="fas fa-house"></i></button>
       <button id="btn-gps" class="bg-white text-slate-600 w-12 h-12 rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-xl active:scale-90 transition"><i class="fas fa-location-crosshairs"></i></button>
-      <button id="btn-timeline-toggle" class="bg-blue-600 text-white px-5 py-3.5 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition border border-blue-400 mt-2"><i class="fas fa-route"></i> タイムライン</button>
     </div>
   </div>
 
-  <!-- タイムラインパネル等はそのまま -->
-  <div id="timeline-panel" class="fixed bottom-0 left-0 right-0 bg-slate-50/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_25px_rgba(0,0,0,0.15)] z-[1500] h-[75vh] flex flex-col timeline-hidden border-t border-white pb-[env(safe-area-inset-bottom)]">
-    <div class="p-4 bg-white rounded-t-3xl shadow-sm z-10 relative">
-      <div class="w-12 h-1.5 bg-slate-300 rounded-full absolute top-2 left-1/2 -translate-x-1/2"></div>
-      <div class="flex justify-between items-center mt-2">
-        <h2 class="font-bold text-blue-900"><i class="fas fa-book-open text-blue-500 mr-2"></i>旅のしおり＆思い出</h2>
-        <button id="btn-timeline-close" class="text-slate-400 w-8 h-8 bg-slate-100 rounded-full active:scale-90"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="flex gap-2 mt-4 overflow-x-auto hide-scrollbar" id="tab-container">
+  <!-- タイムラインパネル (全画面タブ表示用) -->
+  <div id="timeline-panel" class="flex flex-col timeline-hidden border-t border-slate-200">
+    <div class="p-4 bg-white shadow-sm z-10 shrink-0">
+      <h2 class="font-bold text-blue-900 text-lg mb-3"><i class="fas fa-route text-blue-500 mr-2"></i>旅のしおり＆思い出</h2>
+      <div class="flex gap-2 overflow-x-auto hide-scrollbar" id="tab-container">
         <button class="tab-btn flex-1 bg-blue-600 text-white rounded-lg py-2 text-xs font-bold shrink-0" data-day="11/30">Day1 (11/30)</button>
         <button class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-2 text-xs font-bold shrink-0" data-day="12/01">Day2 (12/1)</button>
         <button class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-2 text-xs font-bold shrink-0" data-day="12/02">Day3 (12/2)</button>
@@ -111,12 +139,25 @@
     <div id="timeline-content" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8 scroll-smooth"></div>
   </div>
 
-  <div id="pin-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[2000] p-4 backdrop-blur-sm overflow-y-auto">
+  <!-- ボトムナビゲーション -->
+  <div id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.05)] border-t border-slate-100 flex pointer-events-auto">
+    <button id="nav-map" class="flex-1 py-3 flex flex-col items-center gap-1 text-blue-600 transition active:bg-blue-50">
+      <i class="fas fa-map-marked-alt text-xl"></i>
+      <span class="text-[10px] font-bold">マップ</span>
+    </button>
+    <button id="nav-timeline" class="flex-1 py-3 flex flex-col items-center gap-1 text-slate-400 transition active:bg-blue-50">
+      <i class="fas fa-list-ul text-xl"></i>
+      <span class="text-[10px] font-bold">タイムライン</span>
+    </button>
+  </div>
+
+  <!-- ピン追加モーダル -->
+  <div id="pin-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[3000] p-4 backdrop-blur-sm overflow-y-auto">
     <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl my-auto">
       <div class="bg-blue-600 text-white p-3 font-bold text-center flex items-center justify-center gap-2 rounded-t-2xl">
         <i class="fas fa-pen-nib"></i> 記録を追加
       </div>
-      <div class="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
+      <div class="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
         <div class="flex gap-2">
           <div class="flex-1">
             <label class="block text-[10px] font-bold text-slate-500 mb-1">日付</label>
@@ -140,7 +181,7 @@
           <input type="text" id="input-memo" placeholder="例: 尾道ラーメン食べる！" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
         </div>
         <div>
-          <label class="block text-[10px] font-bold text-slate-500 mb-1"><i class="fas fa-camera"></i> 写真を添付 (自動で軽くして保存されます)</label>
+          <label class="block text-[10px] font-bold text-slate-500 mb-1"><i class="fas fa-camera"></i> 写真を添付</label>
           <input type="file" id="input-photo" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
           <img id="photo-preview" class="mt-2 hidden rounded-lg max-h-32 object-cover w-full border border-slate-200">
         </div>
@@ -181,7 +222,19 @@
     const pinsCollection = collection(db, "pins");
     const q = query(pinsCollection, orderBy("sortTime", "asc"));
 
-    let allPinsData = []; let currentDayTab = "11/30"; let isInitialLoad = true;
+    let allPinsData = []; let currentDayTab = "11/30"; let currentUser = "ありねこ";
+
+    // スプラッシュ画面のプレイヤー選択
+    document.querySelectorAll('.player-select-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        currentUser = e.currentTarget.dataset.player;
+        document.getElementById('input-member').value = currentUser; 
+        const splash = document.getElementById('splash-screen');
+        splash.style.opacity = '0';
+        setTimeout(() => { splash.style.display = 'none'; }, 500);
+        showToast(`${currentUser} として参加しました`, "success");
+      });
+    });
 
     function showToast(msg, type='info') {
       const container = document.getElementById('toast-container');
@@ -193,20 +246,22 @@
       setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    // 💥 最も安定している OpenStreetMap の標準タイルAPIに変更（全世界共通でブロックされにくい）
-    const defaultCenter = [34.3939, 132.4624];
-    const defaultZoom = 10;
-    const map = L.map('map', { zoomControl: false, tap: false }).setView(defaultCenter, defaultZoom);
+    // 地図の初期化
+    const map = L.map('map', { zoomControl: false, tap: false });
+    const defaultBounds = L.latLngBounds([34.00, 132.30], [34.45, 133.30]);
+    map.fitBounds(defaultBounds);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; OpenStreetMap'
     }).addTo(map);
-    
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // 以降のスクリプトは全てこれまで通り正常動作します
-    document.getElementById('btn-home').addEventListener('click', () => { map.flyTo(defaultCenter, defaultZoom, { duration: 1.0 }); showToast("初期位置に戻りました", "info"); });
+    document.getElementById('btn-home').addEventListener('click', () => { 
+      map.fitBounds(defaultBounds, { duration: 1.0 }); 
+      showToast("全体マップに戻りました", "info"); 
+    });
+
     let userLocMarker = null; let watchId = null;
     document.getElementById('btn-gps').addEventListener('click', () => {
       if(watchId) { map.stopLocate(); watchId=null; showToast("GPS停止", "info"); }
@@ -228,6 +283,7 @@
       } catch(e) { showToast("検索エラー", "error"); }
     });
 
+    // 写真プレビュー処理
     let currentPhotoBase64 = null;
     document.getElementById('input-photo').addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -249,6 +305,7 @@
       reader.readAsDataURL(file);
     });
 
+    // モーダル制御
     let currentLatLng = null; const modal = document.getElementById('pin-modal');
     map.on('contextmenu', (e) => { currentLatLng = e.latlng; openModal(); });
     let clickTimeout; map.on('click', (e) => { clearTimeout(clickTimeout); clickTimeout = setTimeout(() => { currentLatLng = e.latlng; openModal(); }, 250); });
@@ -257,6 +314,7 @@
     function openModal() {
       const now = new Date();
       document.getElementById('input-time').value = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
+      document.getElementById('input-member').value = currentUser;
       modal.classList.replace('hidden', 'flex');
       currentPhotoBase64 = null; document.getElementById('input-photo').value = ""; document.getElementById('photo-preview').classList.add('hidden');
       document.getElementById('input-food-type').value = "";
@@ -286,9 +344,29 @@
       document.getElementById('btn-save').disabled = false;
     });
 
+    // ボトムナビゲーション (タブ切り替え) 処理
+    const navMap = document.getElementById('nav-map');
+    const navTimeline = document.getElementById('nav-timeline');
     const panel = document.getElementById('timeline-panel');
-    document.getElementById('btn-timeline-toggle').addEventListener('click', () => panel.classList.replace('timeline-hidden', 'timeline-visible'));
-    document.getElementById('btn-timeline-close').addEventListener('click', () => panel.classList.replace('timeline-visible', 'timeline-hidden'));
+    const uiLayer = document.getElementById('ui-layer');
+
+    function switchTab(tab) {
+      if (tab === 'map') {
+        navMap.classList.replace('text-slate-400', 'text-blue-600');
+        navTimeline.classList.replace('text-blue-600', 'text-slate-400');
+        panel.classList.replace('timeline-visible', 'timeline-hidden');
+        uiLayer.style.display = 'flex'; // マップのUIを表示
+      } else {
+        navTimeline.classList.replace('text-slate-400', 'text-blue-600');
+        navMap.classList.replace('text-blue-600', 'text-slate-400');
+        panel.classList.replace('timeline-hidden', 'timeline-visible');
+        uiLayer.style.display = 'none'; // タイムライン中はマップUIを隠す
+        renderTimeline(true);
+      }
+    }
+
+    navMap.addEventListener('click', () => switchTab('map'));
+    navTimeline.addEventListener('click', () => switchTab('timeline'));
 
     window.updateStatus = async (id, statusStr) => {
       await updateDoc(doc(db, "pins", id), { status: statusStr });
@@ -348,7 +426,7 @@
       }
       
       updateTabUI();
-      renderTimeline(true);
+      renderTimeline(false);
       renderMap();
     });
 
@@ -447,7 +525,7 @@
         
         card.addEventListener('click', (e) => {
           if(e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
-            panel.classList.replace('timeline-visible', 'timeline-hidden');
+            switchTab('map'); // タブをマップに切り替えて移動
             map.flyTo([data.lat, data.lng], 16, {duration:0.5});
           }
         });
