@@ -206,13 +206,14 @@
       setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    // 地図の初期化 (★元のCarto地図に戻しました！)
+    // 地図の初期化 (★画像と同じ「地理院タイル」に変更！)
     const defaultCenter = [34.3939, 132.4624];
     const defaultZoom = 10;
     const map = L.map('map', { zoomControl: false, tap: false }).setView(defaultCenter, defaultZoom);
     
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { 
-      maxZoom: 19 
+    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { 
+      maxZoom: 18,
+      attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
     }).addTo(map);
     
     L.control.zoom({ position: 'bottomright' }).addTo(map);
