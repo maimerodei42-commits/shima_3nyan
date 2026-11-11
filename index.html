@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>しまねこトリオ 🐾 記憶のジオラマ</title>
+<title>しまねこトリオ旅マップ 🐾</title>
 
 <!-- Web App Meta Tags -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,6 +13,7 @@
 
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Google Fonts (柔らかい丸ゴシック系) -->
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <!-- Leaflet CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -41,7 +42,6 @@
 
   /* ピンのスタイル */
   .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.25); border: 2px solid white; }
-  /* 「行った」ピンはピンクに */
   .pin-done { background-color: #f472b6 !important; border-color: #fbcfe8 !important; opacity: 0.9; } 
   .pin-cancel { background-color: #cbd5e1 !important; opacity: 0.4; text-decoration: line-through; }
   
@@ -49,63 +49,73 @@
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
   .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-  .toast-enter { animation: slideDown 0.3s ease-out forwards; }
-  .toast-exit { animation: slideUp 0.3s ease-in forwards; }
-  @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  @keyframes slideUp { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-100%); opacity: 0; } }
-
-  /* 検索結果リスト用 */
-  #searchResults { max-height: 200px; overflow-y: auto; }
 </style>
 </head>
 <body class="text-slate-700 min-h-screen flex flex-col select-none">
 
-<div id="toast-container" class="fixed top-0 left-0 right-0 z-[5000] flex flex-col items-center pt-[calc(env(safe-area-inset-top,0px)+10px)] pointer-events-none gap-2 px-4"></div>
-
-<!-- メンバー選択 -->
+<!-- ★ 元のタイトル画面 & メンバー選択オーバーレイ（そのまま復元） -->
 <div id="splashScreen" class="fixed inset-0 z-[9999] bg-gradient-to-b from-slate-100 via-sky-50 to-blue-100 flex flex-col items-center justify-center p-6 text-center">
+  <div class="absolute top-10 left-8 text-4xl animate-bounce" style="animation-duration: 3s;">🦪</div>
+  <div class="absolute top-1/4 right-10 text-4xl animate-bounce" style="animation-duration: 2.5s;">🍋</div>
+  <div class="absolute bottom-20 left-12 text-4xl animate-bounce" style="animation-duration: 3.5s;">🥞</div>
+  <div class="absolute bottom-1/3 right-12 text-3xl opacity-60">❄️</div>
+  <div class="absolute top-1/3 left-1/4 text-2xl opacity-40">❄️</div>
+
+  <!-- フェーズ1: 2秒間のタイトル画面 -->
   <div id="splashTitle" class="space-y-4 animate-fade-in">
-    <div class="inline-block bg-white/80 backdrop-blur-md px-6 py-4 rounded-3xl shadow-xl">
-      <p class="text-xs text-sky-400 font-bold mb-1">記憶のジオラマ</p>
-      <h1 class="text-3xl font-extrabold text-sky-600 tracking-wider">しまねこトリオ 🐾</h1>
+    <div class="inline-block bg-white/80 backdrop-blur-md px-6 py-4 rounded-3xl shadow-xl border border-sky-100">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-sky-600 tracking-wider">
+        🐾 しまねこトリオ 🐾
+      </h1>
+      <p class="text-xs text-sky-400 mt-2 font-bold">しまなみ・広島 冬の旅マップ 🍋</p>
     </div>
   </div>
-  <div id="userSelectBox" class="hidden space-y-5 animate-fade-in max-w-xs w-full bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-2xl mt-4">
+
+  <!-- フェーズ2: あなたはだれ？ 選択画面 -->
+  <div id="userSelectBox" class="hidden space-y-5 animate-fade-in max-w-xs w-full bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-2xl border border-sky-100">
     <h2 class="text-lg font-bold text-slate-700 border-b border-sky-100 pb-2">あなたはだれ？</h2>
     <div class="flex flex-col gap-3">
-      <button onclick="selectUser('ありねこ')" class="w-full py-3 bg-rose-400 text-white font-bold rounded-2xl shadow-md">🐱 ありねこ</button>
-      <button onclick="selectUser('ことみねこ')" class="w-full py-3 bg-teal-400 text-white font-bold rounded-2xl shadow-md">🐱 ことみねこ</button>
-      <button onclick="selectUser('クロスバイカーあつき')" class="w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow-md">🚴‍♂️ クロスバイカーあつき</button>
+      <button onclick="selectUser('ありねこ')" class="w-full py-3 bg-rose-400 hover:bg-rose-500 text-white font-bold rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center gap-2">
+        🐱 ありねこ
+      </button>
+      <button onclick="selectUser('ことみねこ')" class="w-full py-3 bg-teal-400 hover:bg-teal-500 text-white font-bold rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center gap-2">
+        🐱 ことみねこ
+      </button>
+      <button onclick="selectUser('あつきねこ')" class="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center gap-2">
+        🐱 あつきねこ
+      </button>
     </div>
   </div>
 </div>
 
 <div id="map"></div>
 
+<!-- UIレイヤー (ヘッダーも元のデザインを完全復元) -->
 <div id="ui-layer">
   <div class="p-3 space-y-2 pointer-events-auto w-full box-border">
-    <header class="bg-white/90 backdrop-blur-md shadow-sm rounded-2xl px-3 py-2 flex items-center justify-between">
+    <header class="bg-white/90 backdrop-blur-md border-b border-sky-100 shadow-sm rounded-2xl px-3 py-2 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <h1 class="text-sm font-extrabold text-sky-600 m-0">しまねこトリオ 🐾</h1>
+        <span class="text-xl">🍋</span>
+        <h1 class="text-base font-extrabold text-sky-600 m-0">しまねこトリオ 🐾</h1>
         <span id="currentUserBadge" class="text-[10px] bg-sky-100 text-sky-700 font-bold px-2 py-0.5 rounded-full">未選択</span>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="toggleSearch()" class="w-8 h-8 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center shadow-sm">
+        <button id="btnSearchToggle" onclick="toggleSearch()" class="w-8 h-8 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center border border-sky-100 active:scale-95 transition">
           <i data-lucide="search" class="w-4 h-4"></i>
         </button>
-        <button onclick="openAddModal()" class="bg-sky-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>予定追加
+        <button onclick="openAddModal()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition flex items-center gap-1">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i><span>予定の追加</span>
         </button>
       </div>
     </header>
 
     <!-- グルメカウンター -->
     <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex gap-3 overflow-x-auto hide-scrollbar border border-orange-100">
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🥞</span><span class="text-xs font-bold text-slate-600">お好み焼き</span><span id="cnt-okonomi" class="font-bold text-orange-500 ml-1">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🦪</span><span class="text-xs font-bold text-slate-600">牡蠣</span><span id="cnt-oyster" class="font-bold text-orange-500 ml-1">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍁</span><span class="text-xs font-bold text-slate-600">もみじ</span><span id="cnt-momiji" class="font-bold text-orange-500 ml-1">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍜</span><span class="text-xs font-bold text-slate-600">ラーメン</span><span id="cnt-ramen" class="font-bold text-orange-500 ml-1">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍋</span><span class="text-xs font-bold text-slate-600">レモン</span><span id="cnt-lemon" class="font-bold text-orange-500 ml-1">0</span></div>
+      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🥞</span><span class="text-xs font-bold text-slate-600">お好み焼き</span><span id="cnt-okonomi" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
+      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🦪</span><span class="text-xs font-bold text-slate-600">牡蠣</span><span id="cnt-oyster" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
+      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍁</span><span class="text-xs font-bold text-slate-600">もみじ饅頭</span><span id="cnt-momiji" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
+      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍜</span><span class="text-xs font-bold text-slate-600">尾道ラーメン</span><span id="cnt-ramen" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
+      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍋</span><span class="text-xs font-bold text-slate-600">レモン</span><span id="cnt-lemon" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
     </div>
 
     <!-- 検索ボックス -->
@@ -114,8 +124,7 @@
         <input type="text" id="searchInput" placeholder="地名や施設を検索..." class="flex-1 p-2.5 text-xs outline-none">
         <button onclick="executeSearch()" class="bg-sky-500 text-white px-4 flex items-center justify-center"><i data-lucide="search" class="w-4 h-4"></i></button>
       </div>
-      <!-- 検索結果リスト -->
-      <ul id="searchResults" class="text-xs divide-y divide-slate-100 bg-white"></ul>
+      <ul id="searchResults" class="text-xs divide-y divide-slate-100 bg-white max-h-48 overflow-y-auto"></ul>
     </div>
   </div>
 
@@ -131,19 +140,20 @@
     <div class="flex items-center justify-between mb-3">
       <div>
         <h2 class="font-bold text-sky-700 text-base m-0 flex items-center gap-1.5"><i data-lucide="route" class="w-5 h-5"></i>📍 旅のみちのり順</h2>
+        <p class="text-[10px] text-slate-400 m-0">11/30 〜 12/03 の予定タイムライン</p>
       </div>
     </div>
     <div class="flex gap-2 overflow-x-auto hide-scrollbar" id="tabContainer">
-      <button onclick="filterDay('11/30')" class="tab-btn flex-1 bg-sky-500 text-white rounded-lg py-1.5 text-xs font-bold" data-day="11/30">11/30</button>
-      <button onclick="filterDay('12/01')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold" data-day="12/01">12/01</button>
-      <button onclick="filterDay('12/02')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold" data-day="12/02">12/02</button>
-      <button onclick="filterDay('12/03')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold" data-day="12/03">12/03</button>
+      <button onclick="filterDay('11/30')" class="tab-btn flex-1 bg-sky-500 text-white rounded-lg py-1.5 text-xs font-bold shrink-0" data-day="11/30">11/30 (月)</button>
+      <button onclick="filterDay('12/01')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0" data-day="12/01">12/01 (火)</button>
+      <button onclick="filterDay('12/02')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0" data-day="12/02">12/02 (水)</button>
+      <button onclick="filterDay('12/03')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0" data-day="12/03">12/03 (木)</button>
     </div>
   </div>
   <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8"></div>
 </div>
 
-<nav id="bottom-nav" class="bg-white shadow border-t border-sky-100 flex pointer-events-auto">
+<nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.05)] border-t border-sky-100 flex pointer-events-auto">
   <button onclick="switchMainTab('map')" id="navBtnMap" class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-sky-600 font-bold text-xs"><i data-lucide="map" class="w-5 h-5"></i>マップ</button>
   <button onclick="switchMainTab('route')" id="navBtnRoute" class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-slate-400 font-bold text-xs"><i data-lucide="route" class="w-5 h-5"></i>みちのり</button>
 </nav>
@@ -213,7 +223,6 @@
     <form onsubmit="submitEvaluation(event)" class="space-y-3 text-xs">
       <input type="hidden" id="evalSpotId">
       
-      <!-- グルメ記録をここに移動 -->
       <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
         <label class="block font-bold text-orange-700 mb-2">🥞 食べたものを記録</label>
         <div class="flex gap-2">
@@ -251,7 +260,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC7DjN_QqUtMRhQNjWLg6aam2KUqh0CeV0",
@@ -269,10 +278,20 @@
     lucide.createIcons();
     const timeSelect = document.getElementById('spotTime');
     for(let i=0; i<24; i++) timeSelect.appendChild(new Option(`${String(i).padStart(2,'0')}:00`, `${String(i).padStart(2,'0')}:00`));
-    setTimeout(() => { document.getElementById('splashTitle').classList.add('hidden'); document.getElementById('userSelectBox').classList.remove('hidden'); }, 1500);
+    
+    // スプラッシュ表示（2秒後にユーザー選択へ）
+    setTimeout(() => { 
+      document.getElementById('splashTitle').classList.add('hidden'); 
+      document.getElementById('userSelectBox').classList.remove('hidden'); 
+    }, 2000);
   };
 
-  window.selectUser = function(name) { window.currentUser = name; document.getElementById('currentUserBadge').textContent = name; document.getElementById('splashScreen').classList.add('hidden'); initMap(); };
+  window.selectUser = function(name) { 
+    window.currentUser = name; 
+    document.getElementById('currentUserBadge').textContent = name; 
+    document.getElementById('splashScreen').classList.add('hidden'); 
+    initMap(); 
+  };
 
   function initMap() {
     window.map = L.map('map', { zoomControl: false, tap: false }).setView([34.25, 133.00], 10);
@@ -292,7 +311,6 @@
     });
   }
 
-  /* --- 検索処理 --- */
   window.toggleSearch = function() { document.getElementById('searchContainer').classList.toggle('hidden'); };
   window.executeSearch = async function() {
     const val = document.getElementById('searchInput').value.trim();
@@ -315,14 +333,24 @@
     } else { ul.innerHTML = "<li class='p-3 text-slate-400'>見つかりませんでした</li>"; }
   };
 
-  /* --- UI制御 --- */
   window.switchMainTab = function(tab) {
     if(tab === 'map') { document.getElementById('timeline-panel').classList.replace('timeline-visible','timeline-hidden'); document.getElementById('ui-layer').style.display='flex'; }
     else { document.getElementById('timeline-panel').classList.replace('timeline-hidden','timeline-visible'); document.getElementById('ui-layer').style.display='none'; renderRouteTimeline(); }
   };
-  window.filterDay = function(day) { window.currentDayTab = day; renderRouteTimeline(); };
 
-  /* --- ピンとタイムライン描画 --- */
+  /* --- 日付タブのハイライト連動 --- */
+  window.filterDay = function(day) { 
+    window.currentDayTab = day; 
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      if(btn.dataset.day === day) {
+        btn.className = "tab-btn flex-1 bg-sky-500 text-white rounded-lg py-1.5 text-xs font-bold shrink-0";
+      } else {
+        btn.className = "tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0";
+      }
+    });
+    renderRouteTimeline(); 
+  };
+
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
@@ -345,7 +373,10 @@
       return `
       <div class="p-3 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-2">
         <div class="flex justify-between items-center text-xs">
-          <span class="font-extrabold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">${spot.time}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">${spot.time}</span>
+            <span class="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
+          </div>
           <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
         </div>
         <div>
@@ -367,7 +398,6 @@
     await updateDoc(doc(db, "pins", id), { status: spot.status===st ? 'pending' : st });
   };
 
-  /* --- モーダル・入力制御 --- */
   window.autoSetEmoji = function() {
     const emojis = { sightseeing:'🚴', gourmet:'🦪', hotel:'🏨', other:'📍' };
     document.getElementById('spotEmoji').value = emojis[document.getElementById('spotGenre').value] || '📍';
@@ -407,7 +437,8 @@
       urls: urls,
       lat: parseFloat(document.getElementById('spotLat').value),
       lng: parseFloat(document.getElementById('spotLng').value),
-      status: 'pending'
+      status: 'pending',
+      recordedBy: window.currentUser
     });
     closeAddModal();
   };
@@ -426,7 +457,7 @@
       evalComment: document.getElementById('evalComment').value,
       foodType: document.getElementById('evalFoodType').value,
       foodCount: parseInt(document.getElementById('evalFoodCount').value) || 1,
-      status: 'done' // 評価したら自動で「行った（ピンク）」にする
+      status: 'done'
     });
     closeEvalModal();
   };
