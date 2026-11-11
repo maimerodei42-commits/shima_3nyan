@@ -13,7 +13,7 @@
 
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- Google Fonts (柔らかい丸ゴシック系) -->
+<!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <!-- Leaflet CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -53,7 +53,7 @@
 </head>
 <body class="text-slate-700 min-h-screen flex flex-col select-none">
 
-<!-- ★ 元のタイトル画面 & メンバー選択オーバーレイ（そのまま復元） -->
+<!-- タイトル画面 & メンバー選択 -->
 <div id="splashScreen" class="fixed inset-0 z-[9999] bg-gradient-to-b from-slate-100 via-sky-50 to-blue-100 flex flex-col items-center justify-center p-6 text-center">
   <div class="absolute top-10 left-8 text-4xl animate-bounce" style="animation-duration: 3s;">🦪</div>
   <div class="absolute top-1/4 right-10 text-4xl animate-bounce" style="animation-duration: 2.5s;">🍋</div>
@@ -61,7 +61,6 @@
   <div class="absolute bottom-1/3 right-12 text-3xl opacity-60">❄️</div>
   <div class="absolute top-1/3 left-1/4 text-2xl opacity-40">❄️</div>
 
-  <!-- フェーズ1: 2秒間のタイトル画面 -->
   <div id="splashTitle" class="space-y-4 animate-fade-in">
     <div class="inline-block bg-white/80 backdrop-blur-md px-6 py-4 rounded-3xl shadow-xl border border-sky-100">
       <h1 class="text-3xl sm:text-4xl font-extrabold text-sky-600 tracking-wider">
@@ -71,7 +70,6 @@
     </div>
   </div>
 
-  <!-- フェーズ2: あなたはだれ？ 選択画面 -->
   <div id="userSelectBox" class="hidden space-y-5 animate-fade-in max-w-xs w-full bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-2xl border border-sky-100">
     <h2 class="text-lg font-bold text-slate-700 border-b border-sky-100 pb-2">あなたはだれ？</h2>
     <div class="flex flex-col gap-3">
@@ -90,7 +88,7 @@
 
 <div id="map"></div>
 
-<!-- UIレイヤー (ヘッダーも元のデザインを完全復元) -->
+<!-- UIレイヤー -->
 <div id="ui-layer">
   <div class="p-3 space-y-2 pointer-events-auto w-full box-border">
     <header class="bg-white/90 backdrop-blur-md border-b border-sky-100 shadow-sm rounded-2xl px-3 py-2 flex items-center justify-between">
@@ -150,7 +148,7 @@
       <button onclick="filterDay('12/03')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0" data-day="12/03">12/03 (木)</button>
     </div>
   </div>
-  <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8"></div>
+  <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8 scroll-smooth"></div>
 </div>
 
 <nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.05)] border-t border-sky-100 flex pointer-events-auto">
@@ -162,10 +160,12 @@
 <div id="spotModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-5 relative max-h-[85vh] overflow-y-auto border border-sky-100">
     <button type="button" onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
-    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加</h3>
+    <h3 id="modalTitle" class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加</h3>
     
     <form id="spotForm" onsubmit="saveSpot(event)" class="space-y-3 text-xs">
-      <input type="hidden" id="spotLat"><input type="hidden" id="spotLng">
+      <input type="hidden" id="editSpotId">
+      <input type="hidden" id="spotLat">
+      <input type="hidden" id="spotLng">
 
       <div>
         <label class="block font-bold text-slate-600 mb-1">スポット名 <span class="text-rose-500">*</span></label>
@@ -189,7 +189,7 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2">
-        <div><label class="block font-bold text-slate-600 mb-1">日付</label><select id="spotDate" required class="w-full border rounded-xl p-2.5 bg-white"><option value="11/30">11/30</option><option value="12/01">12/01</option><option value="12/02">12/02</option><option value="12/03">12/03</option></select></div>
+        <div><label class="block font-bold text-slate-600 mb-1">日付</label><select id="spotDate" required class="w-full border rounded-xl p-2.5 bg-white"><option value="11/30">11/30 (月)</option><option value="12/01">12/01 (火)</option><option value="12/02">12/02 (水)</option><option value="12/03">12/03 (木)</option></select></div>
         <div><label class="block font-bold text-slate-600 mb-1">時間</label><select id="spotTime" required class="w-full border rounded-xl p-2.5 bg-white"></select></div>
       </div>
 
@@ -208,6 +208,11 @@
         </select>
       </div>
 
+      <div>
+        <label class="block font-bold text-slate-600 mb-1">メモ</label>
+        <textarea id="spotComment" rows="2" placeholder="おすすめメニューやメモを残せます" class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-sky-400"></textarea>
+      </div>
+
       <div class="pt-2 flex gap-2">
         <button type="button" onclick="closeAddModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">キャンセル</button>
         <button type="submit" id="btnSaveSpot" class="w-2/3 py-2.5 rounded-xl bg-sky-500 text-white font-bold">保存する</button>
@@ -224,7 +229,7 @@
       <input type="hidden" id="evalSpotId">
       
       <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
-        <label class="block font-bold text-orange-700 mb-2">🥞 食べたものを記録</label>
+        <label class="block font-bold text-orange-700 mb-2">🥞 食べたものを記録 (何個食べた？)</label>
         <div class="flex gap-2">
           <select id="evalFoodType" class="flex-1 border border-orange-200 rounded-lg p-2 bg-white text-slate-700">
             <option value="">-- 食べなかった --</option>
@@ -234,8 +239,12 @@
             <option value="ramen">🍜 尾道ラーメン</option>
             <option value="lemon">🍋 広島レモン</option>
           </select>
-          <select id="evalFoodCount" class="w-16 border border-orange-200 rounded-lg p-2 bg-white text-center">
-            <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+          <select id="evalFoodCount" class="w-20 border border-orange-200 rounded-lg p-2 bg-white text-center font-bold">
+            <option value="1">1個</option>
+            <option value="2">2個</option>
+            <option value="3">3個</option>
+            <option value="4">4個</option>
+            <option value="5">5個</option>
           </select>
         </div>
       </div>
@@ -260,7 +269,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC7DjN_QqUtMRhQNjWLg6aam2KUqh0CeV0",
@@ -279,7 +288,6 @@
     const timeSelect = document.getElementById('spotTime');
     for(let i=0; i<24; i++) timeSelect.appendChild(new Option(`${String(i).padStart(2,'0')}:00`, `${String(i).padStart(2,'0')}:00`));
     
-    // スプラッシュ表示（2秒後にユーザー選択へ）
     setTimeout(() => { 
       document.getElementById('splashTitle').classList.add('hidden'); 
       document.getElementById('userSelectBox').classList.remove('hidden'); 
@@ -307,7 +315,23 @@
         if(data.foodType && data.status !== 'cancel' && data.rating) foodTotals[data.foodType] += (data.foodCount || 1);
       });
       ['okonomi','oyster','momiji','ramen','lemon'].forEach(k => document.getElementById(`cnt-${k}`).innerText = foodTotals[k]);
-      renderMarkers(); renderRouteTimeline();
+      
+      // 自動日付切り替え判定: 該当日の予定がすべて完了(done/cancel)なら翌日へ移動
+      const dates = ['11/30', '12/01', '12/02', '12/03'];
+      for(let d of dates) {
+        const daySpots = window.spots.filter(s => s.date === d);
+        if(daySpots.length > 0) {
+          const allDone = daySpots.every(s => s.status === 'done' || s.status === 'cancel');
+          if(!allDone) {
+            window.currentDayTab = d;
+            break;
+          }
+        }
+      }
+
+      updateTabButtonsUI();
+      renderMarkers(); 
+      renderRouteTimeline();
     });
   }
 
@@ -334,68 +358,131 @@
   };
 
   window.switchMainTab = function(tab) {
-    if(tab === 'map') { document.getElementById('timeline-panel').classList.replace('timeline-visible','timeline-hidden'); document.getElementById('ui-layer').style.display='flex'; }
-    else { document.getElementById('timeline-panel').classList.replace('timeline-hidden','timeline-visible'); document.getElementById('ui-layer').style.display='none'; renderRouteTimeline(); }
+    if(tab === 'map') { 
+      document.getElementById('timeline-panel').classList.replace('timeline-visible','timeline-hidden'); 
+      document.getElementById('ui-layer').style.display='flex'; 
+    } else { 
+      document.getElementById('timeline-panel').classList.replace('timeline-hidden','timeline-visible'); 
+      document.getElementById('ui-layer').style.display='none'; 
+      updateTabButtonsUI();
+      renderRouteTimeline(true); // 自動スクロール付きで描画
+    }
   };
 
-  /* --- 日付タブのハイライト連動 --- */
-  window.filterDay = function(day) { 
-    window.currentDayTab = day; 
+  function updateTabButtonsUI() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
-      if(btn.dataset.day === day) {
+      if(btn.dataset.day === window.currentDayTab) {
         btn.className = "tab-btn flex-1 bg-sky-500 text-white rounded-lg py-1.5 text-xs font-bold shrink-0";
       } else {
         btn.className = "tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0";
       }
     });
-    renderRouteTimeline(); 
+  }
+
+  window.filterDay = function(day) { 
+    window.currentDayTab = day; 
+    updateTabButtonsUI();
+    renderRouteTimeline(true); 
   };
 
+  // マップ上のピン描画＆詳細ポップアップの強化
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
       let ext = spot.status === 'done' ? "pin-done" : (spot.status === 'cancel' ? "pin-cancel" : "");
       let iconHtml = `<div class="custom-pin ${ext}" style="background-color:#38bdf8; width:32px; height:32px; font-size:16px;">${spot.iconEmoji || '📍'}</div>`;
       let marker = L.marker([spot.lat, spot.lng], { icon: L.divIcon({ html: iconHtml, className: '', iconSize: [32,32], iconAnchor:[16,32] }) }).addTo(window.map);
-      marker.bindPopup(`<div class="font-bold text-xs text-center">${spot.name}</div>`);
+      
+      let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1));
+      let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
+
+      let popupContent = `
+      <div class="p-1 font-sans text-xs space-y-1 max-w-[200px]">
+        <div class="font-extrabold text-slate-800 text-sm border-b pb-1">${spot.iconEmoji || '📍'} ${spot.name}</div>
+        <div class="text-[10px] text-slate-500 flex justify-between">
+          <span>📅 ${spot.date} ${spot.time}</span>
+          <span class="font-bold text-amber-500">${prioText}</span>
+        </div>
+        <div class="text-[10px] text-sky-600 font-bold">📝 記録: ${spot.recordedBy || 'メンバー'}</div>
+        ${spot.comment ? `<div class="text-[10px] bg-slate-50 p-1 rounded text-slate-600">${spot.comment}</div>` : ''}
+        ${urlsHtml}
+        ${spot.rating ? `<div class="text-[10px] text-pink-600 font-bold bg-pink-50 p-1 rounded mt-1">⭐ 評価: ${'★'.repeat(spot.rating)}</div>` : ''}
+      </div>`;
+
+      marker.bindPopup(popupContent);
       window.markers.push(marker);
     });
   }
 
-  function renderRouteTimeline() {
+  // タイムライン描画 (編集ボタン・未完了位置自動スクロール付き)
+  function renderRouteTimeline(autoScroll = false) {
     const list = document.getElementById('routeTimelineList');
     const daySpots = window.spots.filter(s => s.date === window.currentDayTab);
-    list.innerHTML = daySpots.map(spot => {
+    
+    let firstUnfinishedIndex = -1;
+
+    list.innerHTML = daySpots.map((spot, index) => {
       const isDone = spot.status === 'done';
+      const isCancel = spot.status === 'cancel';
+
+      if(!isDone && !isCancel && firstUnfinishedIndex === -1) {
+        firstUnfinishedIndex = index;
+      }
+
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1) + '☆'.repeat(3-(spot.priority||1)));
-      let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく(Safari等)</a>`).join('');
+      // 「(Safari等)」を消し、「URLをひらく」に変更
+      let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
       
       return `
-      <div class="p-3 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-2">
+      <div id="timeline-card-${index}" class="p-3.5 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-2">
         <div class="flex justify-between items-center text-xs">
           <div class="flex items-center gap-2">
             <span class="font-extrabold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">${spot.time}</span>
-            <span class="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
+            <span class="text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
           </div>
-          <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
+          <div class="flex items-center gap-2">
+            <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
+            <button onclick="deleteSpot('${spot.id}')" class="text-slate-300 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          </div>
         </div>
         <div>
           <h3 class="font-bold text-sm ${spot.status==='cancel'?'line-through text-slate-400':''}">${spot.iconEmoji||'📍'} ${spot.name}</h3>
+          ${spot.comment ? `<p class="text-xs text-slate-500 mt-1 bg-slate-50 p-2 rounded-xl">${spot.comment}</p>` : ''}
           <div class="flex flex-col gap-1 mt-1 text-[10px]">${urlsHtml}</div>
         </div>
-        ${spot.rating ? `<div class="text-xs text-pink-700 bg-pink-50 p-2 rounded-xl font-bold">⭐ 評価済 (グルメ記録含む)</div>` : ''}
-        <div class="pt-2 flex justify-end gap-2 text-xs">
-          <button onclick="openEvalModal('${spot.id}')" class="px-3 py-1.5 rounded-xl bg-pink-50 text-pink-600 font-bold border border-pink-100">評価・グルメ記録</button>
-          <button onclick="updateStatus('${spot.id}', 'done')" class="px-3 py-1.5 rounded-xl ${isDone?'bg-pink-400 text-white':'bg-slate-100'} font-bold">✓ 行った</button>
+        ${spot.rating ? `<div class="text-xs text-pink-700 bg-pink-50 p-2 rounded-xl font-bold">⭐ 評価済: ${'★'.repeat(spot.rating)} ${spot.evalComment || ''}</div>` : ''}
+        <div class="pt-2 flex justify-between items-center text-xs border-t border-slate-100">
+          <button onclick="openEditModal('${spot.id}')" class="text-slate-400 hover:text-sky-500 font-bold flex items-center gap-1">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>編集
+          </button>
+          <div class="flex gap-1.5">
+            <button onclick="openEvalModal('${spot.id}')" class="px-2.5 py-1.5 rounded-xl bg-pink-50 text-pink-600 font-bold border border-pink-100">評価・グルメ記録</button>
+            <button onclick="updateStatus('${spot.id}', 'done')" class="px-3 py-1.5 rounded-xl ${isDone?'bg-pink-400 text-white':'bg-slate-100 text-slate-600'} font-bold">✓ 行った</button>
+          </div>
         </div>
       </div>`;
     }).join('') || '<div class="text-center py-10 text-xs text-slate-400">予定がありません</div>';
+
     lucide.createIcons();
+
+    // 未完了の位置までスクロール
+    if(autoScroll && firstUnfinishedIndex !== -1) {
+      setTimeout(() => {
+        const card = document.getElementById(`timeline-card-${firstUnfinishedIndex}`);
+        if(card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   }
 
   window.updateStatus = async function(id, st) {
     const spot = window.spots.find(s=>s.id===id);
     await updateDoc(doc(db, "pins", id), { status: spot.status===st ? 'pending' : st });
+  };
+
+  window.deleteSpot = async function(id) {
+    if(confirm("この予定を削除しますか？")) {
+      await deleteDoc(doc(db, "pins", id));
+    }
   };
 
   window.autoSetEmoji = function() {
@@ -416,30 +503,83 @@
 
   window.openAddModal = function(lat, lng, name="") {
     document.getElementById('spotForm').reset();
+    document.getElementById('editSpotId').value = "";
+    document.getElementById('modalTitle').innerHTML = `<i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加`;
     document.getElementById('urlContainer').innerHTML = `<label class="block font-bold text-slate-600 mb-1">参考URL</label><input type="url" class="spotUrlInput w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-sky-400" placeholder="https://..." oninput="checkAndAddUrlInput()">`;
-    document.getElementById('spotLat').value = lat; document.getElementById('spotLng').value = lng;
+    document.getElementById('spotLat').value = lat || (window.map ? window.map.getCenter().lat : 34.25);
+    document.getElementById('spotLng').value = lng || (window.map ? window.map.getCenter().lng : 133.00);
     document.getElementById('spotName').value = name;
     document.getElementById('spotModal').classList.remove('hidden');
     window.autoSetEmoji();
+    lucide.createIcons();
   };
+
+  // みちのりからの「編集モーダル」呼び出し
+  window.openEditModal = function(id) {
+    const spot = window.spots.find(s => s.id === id);
+    if (!spot) return;
+
+    document.getElementById('spotForm').reset();
+    document.getElementById('editSpotId').value = spot.id;
+    document.getElementById('modalTitle').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-sky-500"></i>予定を編集`;
+    document.getElementById('spotName').value = spot.name || "";
+    document.getElementById('spotDate').value = spot.date || "11/30";
+    document.getElementById('spotTime').value = spot.time || "09:00";
+    document.getElementById('spotPriority').value = spot.priority || "3";
+    document.getElementById('spotEmoji').value = spot.iconEmoji || "📍";
+    document.getElementById('spotComment').value = spot.comment || "";
+    document.getElementById('spotLat').value = spot.lat;
+    document.getElementById('spotLng').value = spot.lng;
+
+    // URL群のセット
+    const container = document.getElementById('urlContainer');
+    container.innerHTML = `<label class="block font-bold text-slate-600 mb-1">参考URL</label>`;
+    const urls = (spot.urls && spot.urls.length > 0) ? spot.urls : [""];
+    urls.forEach(url => {
+      const input = document.createElement('input');
+      input.type = "url";
+      input.className = "spotUrlInput w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-sky-400 mb-2";
+      input.value = url;
+      input.oninput = window.checkAndAddUrlInput;
+      container.appendChild(input);
+    });
+
+    document.getElementById('spotModal').classList.remove('hidden');
+    lucide.createIcons();
+  };
+
   window.closeAddModal = () => document.getElementById('spotModal').classList.add('hidden');
 
   window.saveSpot = async function(e) {
     e.preventDefault();
+    const editId = document.getElementById('editSpotId').value;
     const urls = Array.from(document.querySelectorAll('.spotUrlInput')).map(i=>i.value.trim()).filter(v=>v!=="");
-    await addDoc(pinsCollection, {
+    
+    const spotData = {
       name: document.getElementById('spotName').value,
       date: document.getElementById('spotDate').value,
       time: document.getElementById('spotTime').value,
       sortTime: parseInt(document.getElementById('spotDate').value.replace('/','') + document.getElementById('spotTime').value.replace(':','')) * 100,
       priority: document.getElementById('spotPriority').value,
       iconEmoji: document.getElementById('spotEmoji').value,
+      comment: document.getElementById('spotComment').value,
       urls: urls,
       lat: parseFloat(document.getElementById('spotLat').value),
-      lng: parseFloat(document.getElementById('spotLng').value),
-      status: 'pending',
-      recordedBy: window.currentUser
-    });
+      lng: parseFloat(document.getElementById('spotLng').value)
+    };
+
+    if(editId) {
+      // 編集更新
+      await updateDoc(doc(db, "pins", editId), spotData);
+    } else {
+      // 新規追加（記録者名を保存）
+      await addDoc(pinsCollection, {
+        ...spotData,
+        status: 'pending',
+        recordedBy: window.currentUser || 'メンバー'
+      });
+    }
+
     closeAddModal();
   };
 
@@ -460,6 +600,17 @@
       status: 'done'
     });
     closeEvalModal();
+  };
+
+  window.resetToDefaultBounds = function() {
+    if(window.map) window.map.setView([34.25, 133.00], 10);
+  };
+  window.locateUser = function() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        window.map.flyTo([pos.coords.latitude, pos.coords.longitude], 14);
+      });
+    }
   };
 </script>
 </body>
