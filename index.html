@@ -79,9 +79,14 @@
     </div>
 
     <!-- 右下ボタン群 -->
-    <div class="p-4 flex flex-col items-end gap-4 pointer-events-auto pb-6">
+    <div class="p-4 flex flex-col items-end gap-3 pointer-events-auto pb-6">
+      <!-- ホーム(初期位置)ボタン追加 -->
+      <button id="btn-home" class="bg-white text-slate-600 w-12 h-12 rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-xl active:scale-90 transition"><i class="fas fa-house"></i></button>
+      
+      <!-- GPSボタン -->
       <button id="btn-gps" class="bg-white text-slate-600 w-12 h-12 rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-xl active:scale-90 transition"><i class="fas fa-location-crosshairs"></i></button>
-      <button id="btn-timeline-toggle" class="bg-blue-600 text-white px-5 py-3.5 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition border border-blue-400"><i class="fas fa-route"></i> タイムライン</button>
+      
+      <button id="btn-timeline-toggle" class="bg-blue-600 text-white px-5 py-3.5 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition border border-blue-400 mt-2"><i class="fas fa-route"></i> タイムライン</button>
     </div>
   </div>
 
@@ -199,8 +204,8 @@
     const pinsCollection = collection(db, "pins");
     const q = query(pinsCollection, orderBy("sortTime", "asc"));
 
-    let allPinsData = []; // 全データ保持用
-    let currentDayTab = "11/30"; // 初期タブ
+    let allPinsData = []; 
+    let currentDayTab = "11/30"; 
 
     // --- トースト通知 ---
     function showToast(msg, type='info') {
@@ -214,9 +219,19 @@
     }
 
     // --- 地図 ---
-    const map = L.map('map', { zoomControl: false, tap: false }).setView([34.3939, 132.4624], 10);
+    // デフォルト位置とズームの設定
+    const defaultCenter = [34.3939, 132.4624];
+    const defaultZoom = 10;
+    
+    const map = L.map('map', { zoomControl: false, tap: false }).setView(defaultCenter, defaultZoom);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // --- ホーム（初期位置）ボタン ---
+    document.getElementById('btn-home').addEventListener('click', () => {
+      map.flyTo(defaultCenter, defaultZoom, { duration: 1.0 });
+      showToast("初期位置に戻りました", "info");
+    });
 
     // --- GPS ---
     let userLocMarker = null; let watchId = null;
@@ -244,7 +259,6 @@
     });
 
     // --- 写真圧縮機能 (Base64) ---
-    // ストレージルールのエラーを回避するため、スマホの写真を自動で小さく(500px)してFirestoreに直接保存します。
     let currentPhotoBase64 = null;
     const photoInput = document.getElementById('input-photo');
     const photoPreview = document.getElementById('photo-preview');
@@ -279,7 +293,6 @@
     map.on('dblclick', () => clearTimeout(clickTimeout));
 
     function openModal() {
-      // 現在時刻をセット
       const now = new Date();
       document.getElementById('input-time').value = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
       
@@ -296,8 +309,7 @@
       
       const day = document.getElementById('input-day').value;
       const time = document.getElementById('input-time').value;
-      // 順番並べ替え用に、日付と時間を結合した数値(sortTime)を作成 (例: "11/30 14:00" -> 11301400)
-      const sortTime = parseInt(day.replace('/','') + time.replace(':','')) * 100; // 後で手動入れ替え用に100倍しておく
+      const sortTime = parseInt(day.replace('/','') + time.replace(':','')) * 100;
 
       document.getElementById('btn-save').disabled = true;
       try {
@@ -337,7 +349,6 @@
       const pinA = allPinsData.find(p => p.id === idA);
       const pinB = allPinsData.find(p => p.id === idB);
       if(!pinA || !pinB) return;
-      // sortTime を入れ替えることで順番をスイッチする
       const tempTime = pinA.sortTime;
       await updateDoc(doc(db, "pins", idA), { sortTime: pinB.sortTime });
       await updateDoc(doc(db, "pins", idB), { sortTime: tempTime });
@@ -363,7 +374,6 @@
         }
       });
 
-      // グルメカウンター更新
       document.getElementById('cnt-okonomi').innerText = foodTotals.okonomi;
       document.getElementById('cnt-oyster').innerText = foodTotals.oyster;
       document.getElementById('cnt-momiji').innerText = foodTotals.momiji;
@@ -393,7 +403,6 @@
       const content = document.getElementById('timeline-content');
       content.innerHTML = '';
       
-      // 現在のタブの日付のみ抽出
       const dayPins = allPinsData.filter(p => p.day === currentDayTab);
       
       if(dayPins.length === 0) {
@@ -401,10 +410,9 @@
         return;
       }
 
-      let timeCount = {}; // 同じ時間のカウント用 { "12:00": 1, ... }
+      let timeCount = {}; 
       
       dayPins.forEach((data, index) => {
-        // 同じ時間かどうかの判定 (①、②をつける)
         if(!timeCount[data.time]) timeCount[data.time] = 1; else timeCount[data.time]++;
         const badgeNum = timeCount[data.time] > 1 ? ` <span class="bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[10px] ml-1">①</span>`.replace('①', String.fromCharCode(9311 + timeCount[data.time])) : (timeCount[data.time]===1 && dayPins.filter(p=>p.time===data.time).length > 1 ? ` <span class="bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[10px] ml-1">①</span>` : '');
 
@@ -413,21 +421,18 @@
         if(data.member==="ことみねこ") { emoji="🐈‍⬛"; color="text-purple-600"; }
         if(data.member==="あつき") { emoji="🚲"; color="text-emerald-600"; }
 
-        // 上下移動用IDの取得
         const prevId = index > 0 ? dayPins[index-1].id : null;
         const nextId = index < dayPins.length - 1 ? dayPins[index+1].id : null;
 
         const card = document.createElement('div');
         card.className = "flex gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 group";
         
-        // 左側の時間・コントロール
         let controls = `<div class="flex flex-col items-center justify-center shrink-0 w-12 border-r border-slate-100 pr-2">`;
         if(prevId) controls += `<button onclick="swapOrder('${data.id}', '${prevId}')" class="text-slate-300 hover:text-blue-500 active:scale-110"><i class="fas fa-chevron-up"></i></button>`;
         controls += `<div class="font-bold text-slate-700 text-sm my-1">${data.time}</div>`;
         if(nextId) controls += `<button onclick="swapOrder('${data.id}', '${nextId}')" class="text-slate-300 hover:text-blue-500 active:scale-110"><i class="fas fa-chevron-down"></i></button>`;
         controls += `</div>`;
 
-        // 右側の内容
         let photoHtml = data.photo ? `<img src="${data.photo}" class="mt-2 rounded-lg max-h-32 object-cover w-full border border-slate-200">` : "";
         let foodHtml = data.foodType ? `<div class="mt-2 text-xs font-bold text-orange-600 bg-orange-50 inline-block px-2 py-1 rounded-full"><i class="fas fa-utensils"></i> グルメ +${data.foodCount}</div>` : "";
 
@@ -444,7 +449,6 @@
           </div>
         `;
         
-        // 画像部分以外をタップで地図に飛ぶ
         card.addEventListener('click', (e) => {
           if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'I') {
             panel.classList.replace('timeline-visible', 'timeline-hidden');
