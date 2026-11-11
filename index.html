@@ -8,18 +8,23 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet CSS & JS (読み込み失敗を防ぐためCloudflareのCDNに変更) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
+    :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
     body { margin: 0; padding: 0; overflow: hidden; background-color: #f0f9ff; -webkit-tap-highlight-color: transparent; }
-    #map { height: 100dvh; width: 100vw; z-index: 1; }
-    #ui-layer { z-index: 1000; pointer-events: none; padding-top: var(--sat); padding-bottom: var(--sab); }
+    
+    /* 💥 地図が消えるバグを修正: 絶対座標で画面いっぱいに強制固定 */
+    #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; width: 100%; height: 100%; }
+    
+    /* UIレイヤーも画面サイズに合わせて絶対固定 */
+    #ui-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding-top: var(--sat); padding-bottom: var(--sab); }
+    
     .pointer-events-auto { pointer-events: auto; }
     
     #timeline-panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -36,11 +41,9 @@
     .custom-pin { background: white; border: 3px solid #3b82f6; border-radius: 50%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: transform 0.2s; }
     .custom-pin.done-pin { border-color: #94a3b8; opacity: 0.8; }
     
-    /* スクロールバー非表示 */
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    /* 完了済みのカード */
     .item-done { opacity: 0.6; filter: grayscale(50%); transition: all 0.3s; }
   </style>
 </head>
@@ -48,25 +51,26 @@
 
   <div id="toast-container" class="fixed top-0 left-0 right-0 z-[3000] flex flex-col items-center pt-[calc(env(safe-area-inset-top)+10px)] pointer-events-none gap-2 px-4"></div>
 
+  <!-- 地図コンテナ -->
   <div id="map"></div>
 
   <!-- UIレイヤー -->
-  <div id="ui-layer" class="fixed inset-0 flex flex-col justify-between">
+  <div id="ui-layer">
     
-    <!-- 上部UI: ヘッダー ＆ 広島グルメカウンター -->
-    <div class="p-4 space-y-2 pointer-events-auto">
-      <header class="bg-white/95 backdrop-blur-md shadow-sm rounded-2xl p-3 border border-blue-100 flex justify-between items-center">
+    <!-- 💥 タイトル・ヘッダー部分（レイアウト崩れを防ぐため構造を強化） -->
+    <div class="p-4 space-y-2 pointer-events-auto w-full box-border">
+      <header class="bg-white/95 backdrop-blur-md shadow-md rounded-2xl p-3 border border-blue-100 flex justify-between items-center relative z-[1001]">
         <div>
-          <h1 class="text-blue-900 font-extrabold text-sm tracking-tight">しまねこトリオ旅マップ 🐾</h1>
-          <p class="text-[10px] text-blue-500 font-bold mt-0.5"><i class="far fa-calendar-alt"></i> 11/30 - 12/3</p>
+          <h1 class="text-blue-900 font-extrabold text-base tracking-tight m-0 leading-none">しまねこトリオ旅マップ 🐾</h1>
+          <p class="text-[10px] text-blue-500 font-bold mt-1 mb-0 leading-none"><i class="far fa-calendar-alt"></i> 11/30 - 12/3</p>
         </div>
-        <button id="btn-search-toggle" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-95 transition border border-blue-100">
+        <button id="btn-search-toggle" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-95 transition border border-blue-100 shrink-0">
           <i class="fas fa-search"></i>
         </button>
       </header>
 
       <!-- グルメカウンター -->
-      <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex gap-3 overflow-x-auto hide-scrollbar border border-orange-100">
+      <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex gap-3 overflow-x-auto hide-scrollbar border border-orange-100 relative z-[1001]">
         <div class="flex items-center gap-1 shrink-0"><span class="text-xl">🥞</span><span class="text-xs font-bold text-slate-600">お好み焼き</span><span id="cnt-okonomi" class="font-bold text-orange-500 ml-1 text-lg">0</span></div>
         <div class="flex items-center gap-1 shrink-0"><span class="text-xl">🦪</span><span class="text-xs font-bold text-slate-600">牡蠣</span><span id="cnt-oyster" class="font-bold text-orange-500 ml-1 text-lg">0</span></div>
         <div class="flex items-center gap-1 shrink-0"><span class="text-xl">🍁</span><span class="text-xs font-bold text-slate-600">もみじ饅頭</span><span id="cnt-momiji" class="font-bold text-orange-500 ml-1 text-lg">0</span></div>
@@ -75,29 +79,28 @@
       </div>
 
       <!-- 検索バー -->
-      <div id="search-box" class="hidden flex gap-2 shadow-lg rounded-xl overflow-hidden bg-white border border-slate-100 transition-all">
-        <input type="text" id="search-input" placeholder="地名や施設を検索..." class="flex-1 p-3 text-sm outline-none">
-        <button id="btn-search" class="bg-blue-600 text-white w-14 flex items-center justify-center hover:bg-blue-700 active:bg-blue-800"><i class="fas fa-search"></i></button>
+      <div id="search-box" class="hidden flex gap-2 shadow-lg rounded-xl overflow-hidden bg-white border border-slate-100 transition-all relative z-[1001]">
+        <input type="text" id="search-input" placeholder="地名や施設を検索..." class="flex-1 p-3 text-sm outline-none w-full">
+        <button id="btn-search" class="bg-blue-600 text-white w-14 flex items-center justify-center hover:bg-blue-700 active:bg-blue-800 shrink-0"><i class="fas fa-search"></i></button>
       </div>
     </div>
 
     <!-- 右下ボタン群 -->
-    <div class="p-4 flex flex-col items-end gap-3 pointer-events-auto pb-6">
+    <div class="p-4 flex flex-col items-end gap-3 pointer-events-auto pb-6 w-full box-border">
       <button id="btn-home" class="bg-white text-slate-600 w-12 h-12 rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-xl active:scale-90 transition"><i class="fas fa-house"></i></button>
       <button id="btn-gps" class="bg-white text-slate-600 w-12 h-12 rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-xl active:scale-90 transition"><i class="fas fa-location-crosshairs"></i></button>
       <button id="btn-timeline-toggle" class="bg-blue-600 text-white px-5 py-3.5 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition border border-blue-400 mt-2"><i class="fas fa-route"></i> タイムライン</button>
     </div>
   </div>
 
-  <!-- タイムラインパネル -->
-  <div id="timeline-panel" class="fixed bottom-0 left-0 right-0 bg-slate-50/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_25px_rgba(0,0,0,0.15)] z-[1500] h-[75dvh] flex flex-col timeline-hidden border-t border-white pb-[env(safe-area-inset-bottom)]">
+  <!-- タイムラインパネル等はそのまま -->
+  <div id="timeline-panel" class="fixed bottom-0 left-0 right-0 bg-slate-50/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_25px_rgba(0,0,0,0.15)] z-[1500] h-[75vh] flex flex-col timeline-hidden border-t border-white pb-[env(safe-area-inset-bottom)]">
     <div class="p-4 bg-white rounded-t-3xl shadow-sm z-10 relative">
       <div class="w-12 h-1.5 bg-slate-300 rounded-full absolute top-2 left-1/2 -translate-x-1/2"></div>
       <div class="flex justify-between items-center mt-2">
         <h2 class="font-bold text-blue-900"><i class="fas fa-book-open text-blue-500 mr-2"></i>旅のしおり＆思い出</h2>
         <button id="btn-timeline-close" class="text-slate-400 w-8 h-8 bg-slate-100 rounded-full active:scale-90"><i class="fas fa-times"></i></button>
       </div>
-      <!-- 4日間のタブ -->
       <div class="flex gap-2 mt-4 overflow-x-auto hide-scrollbar" id="tab-container">
         <button class="tab-btn flex-1 bg-blue-600 text-white rounded-lg py-2 text-xs font-bold shrink-0" data-day="11/30">Day1 (11/30)</button>
         <button class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-2 text-xs font-bold shrink-0" data-day="12/01">Day2 (12/1)</button>
@@ -105,12 +108,9 @@
         <button class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-2 text-xs font-bold shrink-0" data-day="12/03">Day4 (12/3)</button>
       </div>
     </div>
-    <div id="timeline-content" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8 scroll-smooth">
-      <!-- JSで予定が入る -->
-    </div>
+    <div id="timeline-content" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8 scroll-smooth"></div>
   </div>
 
-  <!-- ピン＆思い出 追加モーダル -->
   <div id="pin-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[2000] p-4 backdrop-blur-sm overflow-y-auto">
     <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl my-auto">
       <div class="bg-blue-600 text-white p-3 font-bold text-center flex items-center justify-center gap-2 rounded-t-2xl">
@@ -121,10 +121,7 @@
           <div class="flex-1">
             <label class="block text-[10px] font-bold text-slate-500 mb-1">日付</label>
             <select id="input-day" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
-              <option value="11/30">11/30 (Day1)</option>
-              <option value="12/01">12/1 (Day2)</option>
-              <option value="12/02">12/2 (Day3)</option>
-              <option value="12/03">12/3 (Day4)</option>
+              <option value="11/30">11/30 (Day1)</option><option value="12/01">12/1 (Day2)</option><option value="12/02">12/2 (Day3)</option><option value="12/03">12/3 (Day4)</option>
             </select>
           </div>
           <div class="flex-1">
@@ -135,9 +132,7 @@
         <div>
           <label class="block text-[10px] font-bold text-slate-500 mb-1">誰の記録？</label>
           <select id="input-member" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
-            <option value="ありねこ">🐈 ありねこ</option>
-            <option value="ことみねこ">🐈‍⬛ ことみねこ</option>
-            <option value="あつき">🚲 あつき</option>
+            <option value="ありねこ">🐈 ありねこ</option><option value="ことみねこ">🐈‍⬛ ことみねこ</option><option value="あつき">🚲 あつき</option>
           </select>
         </div>
         <div>
@@ -153,12 +148,7 @@
           <label class="block text-[10px] font-bold text-orange-700 mb-2"><i class="fas fa-utensils"></i> グルメカウンターを進める</label>
           <div class="flex gap-2">
             <select id="input-food-type" class="flex-1 bg-white border border-orange-200 rounded-lg p-2 text-sm text-slate-700">
-              <option value="">-- 食べたら選択 --</option>
-              <option value="okonomi">🥞 お好み焼き</option>
-              <option value="oyster">🦪 牡蠣</option>
-              <option value="momiji">🍁 もみじ饅頭</option>
-              <option value="ramen">🍜 尾道ラーメン</option>
-              <option value="lemon">🍋 広島レモン</option>
+              <option value="">-- 食べたら選択 --</option><option value="okonomi">🥞 お好み焼き</option><option value="oyster">🦪 牡蠣</option><option value="momiji">🍁 もみじ饅頭</option><option value="ramen">🍜 尾道ラーメン</option><option value="lemon">🍋 広島レモン</option>
             </select>
             <select id="input-food-count" class="w-16 bg-white border border-orange-200 rounded-lg p-2 text-sm text-center">
               <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
@@ -191,11 +181,8 @@
     const pinsCollection = collection(db, "pins");
     const q = query(pinsCollection, orderBy("sortTime", "asc"));
 
-    let allPinsData = []; 
-    let currentDayTab = "11/30"; 
-    let isInitialLoad = true;
+    let allPinsData = []; let currentDayTab = "11/30"; let isInitialLoad = true;
 
-    // トースト通知
     function showToast(msg, type='info') {
       const container = document.getElementById('toast-container');
       const t = document.createElement('div');
@@ -206,19 +193,19 @@
       setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    // 地図の初期化 (★画像と同じ「地理院タイル」に変更！)
+    // 💥 最も安定している OpenStreetMap の標準タイルAPIに変更（全世界共通でブロックされにくい）
     const defaultCenter = [34.3939, 132.4624];
     const defaultZoom = 10;
     const map = L.map('map', { zoomControl: false, tap: false }).setView(defaultCenter, defaultZoom);
     
-    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { 
-      maxZoom: 18,
-      attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // ホーム、GPS、検索ボタン機能
+    // 以降のスクリプトは全てこれまで通り正常動作します
     document.getElementById('btn-home').addEventListener('click', () => { map.flyTo(defaultCenter, defaultZoom, { duration: 1.0 }); showToast("初期位置に戻りました", "info"); });
     let userLocMarker = null; let watchId = null;
     document.getElementById('btn-gps').addEventListener('click', () => {
@@ -229,6 +216,7 @@
       if(!userLocMarker) userLocMarker = L.marker(e.latlng, { icon: L.divIcon({ html: `<div class="w-5 h-5 bg-blue-500 rounded-full border-4 border-white shadow-md"></div>`})}).addTo(map);
       else userLocMarker.setLatLng(e.latlng);
     });
+    
     document.getElementById('btn-search-toggle').addEventListener('click', () => document.getElementById('search-box').classList.toggle('hidden'));
     document.getElementById('btn-search').addEventListener('click', async () => {
       const v = document.getElementById('search-input').value;
@@ -240,7 +228,6 @@
       } catch(e) { showToast("検索エラー", "error"); }
     });
 
-    // 写真圧縮
     let currentPhotoBase64 = null;
     document.getElementById('input-photo').addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -262,7 +249,6 @@
       reader.readAsDataURL(file);
     });
 
-    // モーダル保存
     let currentLatLng = null; const modal = document.getElementById('pin-modal');
     map.on('contextmenu', (e) => { currentLatLng = e.latlng; openModal(); });
     let clickTimeout; map.on('click', (e) => { clearTimeout(clickTimeout); clickTimeout = setTimeout(() => { currentLatLng = e.latlng; openModal(); }, 250); });
@@ -289,7 +275,7 @@
         await addDoc(pinsCollection, {
           member: document.getElementById('input-member').value, memo: memo,
           lat: currentLatLng.lat, lng: currentLatLng.lng,
-          day: day, time: time, sortTime: sortTime, status: 'planned', // ステータス初期値
+          day: day, time: time, sortTime: sortTime, status: 'planned',
           photo: currentPhotoBase64,
           foodType: document.getElementById('input-food-type').value,
           foodCount: parseInt(document.getElementById('input-food-count').value) || 0
@@ -300,18 +286,15 @@
       document.getElementById('btn-save').disabled = false;
     });
 
-    // --- タイムラインとステータス機能 ---
     const panel = document.getElementById('timeline-panel');
     document.getElementById('btn-timeline-toggle').addEventListener('click', () => panel.classList.replace('timeline-hidden', 'timeline-visible'));
     document.getElementById('btn-timeline-close').addEventListener('click', () => panel.classList.replace('timeline-visible', 'timeline-hidden'));
 
-    // ステータス更新（行った、評価、キャンセル）
     window.updateStatus = async (id, statusStr) => {
       await updateDoc(doc(db, "pins", id), { status: statusStr });
       if(statusStr !== 'planned') showToast("ステータスを更新しました", "success");
     };
 
-    // タブ切り替えUI関数
     function updateTabUI() {
       document.querySelectorAll('.tab-btn').forEach(b => {
         if(b.dataset.day === currentDayTab) {
@@ -337,7 +320,6 @@
     };
     window.deletePin = async (id) => { if(confirm("削除しますか？")) { await deleteDoc(doc(db, "pins", id)); showToast("削除済", "success"); } };
 
-    // --- リアルタイムデータ同期 ---
     let markers = [];
     
     onSnapshot(q, (snapshot) => {
@@ -348,7 +330,7 @@
         const data = d.data();
         allPinsData.push({ id: d.id, ...data });
         if(data.foodType && data.status !== 'canceled' && foodTotals[data.foodType] !== undefined) {
-          foodTotals[data.foodType] += data.foodCount; // キャンセル以外のグルメをカウント
+          foodTotals[data.foodType] += data.foodCount;
         }
       });
 
@@ -358,16 +340,15 @@
       document.getElementById('cnt-ramen').innerText = foodTotals.ramen;
       document.getElementById('cnt-lemon').innerText = foodTotals.lemon;
 
-      // 自動日めくりロジック（未完了の最初の予定を見つけて、その日にタブを合わせる）
       let firstUnfinished = allPinsData.find(p => !p.status || p.status === 'planned');
       if(firstUnfinished) {
-        currentDayTab = firstUnfinished.day; // まだ終わってない予定がある日を現在のタブにする
+        currentDayTab = firstUnfinished.day;
       } else if(allPinsData.length > 0) {
-        currentDayTab = allPinsData[allPinsData.length - 1].day; // 全部終わってたら最後の日
+        currentDayTab = allPinsData[allPinsData.length - 1].day;
       }
       
       updateTabUI();
-      renderTimeline(true); // スクロール付きで描画
+      renderTimeline(true);
       renderMap();
     });
 
@@ -412,13 +393,12 @@
         const prevId = index > 0 ? dayPins[index-1].id : null;
         const nextId = index < dayPins.length - 1 ? dayPins[index+1].id : null;
 
-        // 完了済み判定
         const isDone = data.status && data.status !== 'planned';
         const cardClass = isDone ? "item-done" : "item-active";
 
         const card = document.createElement('div');
         card.className = `flex gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 group mb-3 ${cardClass}`;
-        if(!isDone) card.dataset.active = "true"; // スクロール用の目印
+        if(!isDone) card.dataset.active = "true";
         
         let controls = `<div class="flex flex-col items-center justify-center shrink-0 w-12 border-r border-slate-100 pr-2">`;
         if(prevId) controls += `<button onclick="swapOrder('${data.id}', '${prevId}')" class="text-slate-300 hover:text-blue-500 active:scale-110 pb-1"><i class="fas fa-chevron-up"></i></button>`;
@@ -429,7 +409,6 @@
         let photoHtml = data.photo ? `<img src="${data.photo}" class="mt-2 rounded-lg max-h-32 object-cover w-full border border-slate-200">` : "";
         let foodHtml = data.foodType ? `<div class="mt-2 text-[10px] font-bold text-orange-600 bg-orange-50 inline-block px-2 py-1 rounded-full"><i class="fas fa-utensils"></i> グルメ +${data.foodCount}</div>` : "";
 
-        // ステータス操作ボタンの出し分け
         let actionButtons = '';
         if(!isDone) {
           actionButtons = `
@@ -476,7 +455,6 @@
         content.appendChild(card);
       });
 
-      // 未完了の予定へ自動スクロール
       if(autoScroll) {
         setTimeout(() => {
           const firstActive = document.querySelector('[data-active="true"]');
