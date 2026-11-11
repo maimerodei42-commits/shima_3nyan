@@ -206,14 +206,13 @@
       setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    // 地図の初期化 (★OpenStreetMapへ修正済み！)
+    // 地図の初期化 (★元のCarto地図に戻しました！)
     const defaultCenter = [34.3939, 132.4624];
     const defaultZoom = 10;
     const map = L.map('map', { zoomControl: false, tap: false }).setView(defaultCenter, defaultZoom);
     
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { 
+      maxZoom: 19 
     }).addTo(map);
     
     L.control.zoom({ position: 'bottomright' }).addTo(map);
