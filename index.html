@@ -126,9 +126,16 @@
     </div>
   </div>
 
-  <div class="p-4 flex flex-col items-end gap-3 pointer-events-auto pb-4 w-full box-border">
-    <button onclick="resetToDefaultBounds()" class="bg-white/95 p-3 rounded-full shadow-lg text-slate-600"><i data-lucide="home" class="w-5 h-5"></i></button>
-    <button onclick="locateUser()" class="bg-white/95 p-3 rounded-full shadow-lg text-sky-600"><i data-lucide="locate-fixed" class="w-5 h-5"></i></button>
+  <!-- マップ左下：表示中のルート日付バッジ & 右下：操作ボタン -->
+  <div class="p-4 flex items-end justify-between pointer-events-none pb-4 w-full box-border">
+    <div class="bg-white/95 backdrop-blur px-3 py-1.5 rounded-full shadow-md border border-sky-100 text-[11px] font-bold text-sky-700 pointer-events-auto flex items-center gap-1.5">
+      <span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span>
+      <span id="mapRouteLabel">11/30 のルート表示中</span>
+    </div>
+    <div class="flex flex-col items-end gap-3 pointer-events-auto">
+      <button onclick="resetToDefaultBounds()" class="bg-white/95 p-3 rounded-full shadow-lg text-slate-600"><i data-lucide="home" class="w-5 h-5"></i></button>
+      <button onclick="locateUser()" class="bg-white/95 p-3 rounded-full shadow-lg text-sky-600"><i data-lucide="locate-fixed" class="w-5 h-5"></i></button>
+    </div>
   </div>
 </div>
 
@@ -148,7 +155,7 @@
       <button onclick="filterDay('12/03')" class="tab-btn flex-1 bg-slate-100 text-slate-500 rounded-lg py-1.5 text-xs font-bold shrink-0" data-day="12/03">12/03 (木)</button>
     </div>
   </div>
-  <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-8 scroll-smooth"></div>
+  <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-2 pb-12 scroll-smooth"></div>
 </div>
 
 <nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.05)] border-t border-sky-100 flex pointer-events-auto">
@@ -224,7 +231,8 @@
 <!-- 評価＆カウンター モーダル -->
 <div id="evalModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-xl max-w-xs w-full p-5 relative">
-    <h3 class="text-base font-bold text-slate-800 mb-3 text-center">⭐ 思い出とグルメ記録</h3>
+    <h3 class="text-base font-bold text-slate-800 mb-1 text-center">⭐ 思い出とグルメ記録</h3>
+    <p id="evalUserBadge" class="text-[11px] text-center text-sky-600 font-bold mb-3"></p>
     <form onsubmit="submitEvaluation(event)" class="space-y-3 text-xs">
       <input type="hidden" id="evalSpotId">
       
@@ -257,7 +265,7 @@
       </div>
       <div>
         <label class="block font-bold text-slate-600 mb-1">感想</label>
-        <textarea id="evalComment" rows="2" class="w-full border rounded-xl p-2"></textarea>
+        <textarea id="evalComment" rows="2" placeholder="みんなのタイムラインに表示されます" class="w-full border rounded-xl p-2"></textarea>
       </div>
       <div class="flex gap-2 pt-2">
         <button type="button" onclick="closeEvalModal()" class="w-1/2 py-2 rounded-xl border">閉じる</button>
@@ -281,7 +289,14 @@
   const pinsCollection = collection(db, "pins");
   const q = query(pinsCollection, orderBy("sortTime", "asc"));
 
-  window.currentUser = ""; window.map = null; window.markers = []; window.spots = []; window.currentDayTab = "11/30";
+  window.currentUser = "";
+  window.map = null;
+  window.markers = [];
+  window.routeLayers = []; // 地図上のルート線管理用
+  window.routeCache = {};  // OSRM API結果キャッシュ用
+  window.spots = [];
+  window.currentDayTab = "11/30";
+  window.isFirstLoad = true;
 
   window.onload = function() {
     lucide.createIcons();
@@ -312,21 +327,35 @@
       snapshot.forEach(d => {
         const data = d.data();
         window.spots.push({ id: d.id, ...data });
-        if(data.foodType && data.status !== 'cancel' && data.rating) foodTotals[data.foodType] += (data.foodCount || 1);
+        
+        if(data.status !== 'cancel') {
+          if(Array.isArray(data.evaluations)) {
+            data.evaluations.forEach(ev => {
+              if(ev.foodType && foodTotals[ev.foodType] !== undefined) {
+                foodTotals[ev.foodType] += (ev.foodCount || 1);
+              }
+            });
+          } else if(data.foodType && data.rating && foodTotals[data.foodType] !== undefined) {
+            foodTotals[data.foodType] += (data.foodCount || 1);
+          }
+        }
       });
       ['okonomi','oyster','momiji','ramen','lemon'].forEach(k => document.getElementById(`cnt-${k}`).innerText = foodTotals[k]);
       
-      // 自動日付切り替え判定: 該当日の予定がすべて完了(done/cancel)なら翌日へ移動
-      const dates = ['11/30', '12/01', '12/02', '12/03'];
-      for(let d of dates) {
-        const daySpots = window.spots.filter(s => s.date === d);
-        if(daySpots.length > 0) {
-          const allDone = daySpots.every(s => s.status === 'done' || s.status === 'cancel');
-          if(!allDone) {
-            window.currentDayTab = d;
-            break;
+      // 初回読み込み時のみ自動日付切り替え判定
+      if (window.isFirstLoad) {
+        const dates = ['11/30', '12/01', '12/02', '12/03'];
+        for(let d of dates) {
+          const daySpots = window.spots.filter(s => s.date === d);
+          if(daySpots.length > 0) {
+            const allDone = daySpots.every(s => s.status === 'done' || s.status === 'cancel');
+            if(!allDone) {
+              window.currentDayTab = d;
+              break;
+            }
           }
         }
+        window.isFirstLoad = false;
       }
 
       updateTabButtonsUI();
@@ -334,6 +363,149 @@
       renderRouteTimeline();
     });
   }
+
+  // 2点間の直線距離（フォールバック用）
+  function calcStraightDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function formatDistance(meters) {
+    if (meters < 1000) return `${Math.round(meters)} m`;
+    return `${(meters / 1000).toFixed(1)} km`;
+  }
+
+  function formatDuration(seconds, mode) {
+    // OSRMの公開サーバーはプロファイルによって速度差が小さいため、移動手段に応じた現実的な目安時間で補正
+    let adjSeconds = seconds;
+    if (mode === 'bike') adjSeconds = seconds * 2.2; // 車ルート比で自転車（時速15〜20km目安）に補正
+    if (mode === 'walk') adjSeconds = seconds * 6.5; // 徒歩（時速4〜5km目安）に補正
+
+    const mins = Math.round(adjSeconds / 60);
+    if (mins < 60) return `約 ${Math.max(1, mins)}分`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `約 ${h}時間${m > 0 ? m + '分' : ''}`;
+  }
+
+  // OSRM ルーティングAPIから実際の道のりとポリライン座標を取得
+  async function fetchRouteSegment(spotA, spotB) {
+    const mode = spotA.transportToNext || 'car';
+    const cacheKey = `${spotA.lat.toFixed(5)},${spotA.lng.toFixed(5)}_${spotB.lat.toFixed(5)},${spotB.lng.toFixed(5)}_${mode}`;
+    
+    if (window.routeCache[cacheKey]) {
+      return window.routeCache[cacheKey];
+    }
+
+    // 電車・バス選択時は道路ルート検索をスキップして直線（航路・鉄道路線イメージ）にする
+    if (mode === 'train') {
+      const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
+      const res = {
+        coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
+        distance: dist,
+        duration: null,
+        isStraight: true
+      };
+      window.routeCache[cacheKey] = res;
+      return res;
+    }
+
+    // OSRM プロファイル選択
+    const profile = mode === 'walk' ? 'foot' : (mode === 'bike' ? 'bike' : 'driving');
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${spotA.lng},${spotA.lat};${spotB.lng},${spotB.lat}?overview=full&geometries=geojson`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        // GeoJSONは [lng, lat] なので Leaflet用の [lat, lng] に変換
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        const result = {
+          coords: coords,
+          distance: route.distance,
+          duration: route.duration,
+          isStraight: false
+        };
+        window.routeCache[cacheKey] = result;
+        return result;
+      }
+    } catch (e) {
+      // ネットワークエラーや海上区間などはフォールバックへ
+    }
+
+    // ルートが見つからない場合（フェリー区間など）は直線で結ぶ
+    const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
+    const fallback = {
+      coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
+      distance: dist,
+      duration: null,
+      isStraight: true
+    };
+    window.routeCache[cacheKey] = fallback;
+    return fallback;
+  }
+
+  // 地図上のルート線を更新＆タイムラインの実距離表示を更新
+  async function drawMapRoutesAndUpdateDistances(daySpots) {
+    if (!window.map) return;
+
+    // 既存のルート線をクリア
+    window.routeLayers.forEach(layer => window.map.removeLayer(layer));
+    window.routeLayers = [];
+
+    document.getElementById('mapRouteLabel').textContent = `${window.currentDayTab} のルート表示中`;
+
+    // キャンセルされていないスポットのみを線で結ぶ
+    const activeSpots = daySpots.filter(s => s.status !== 'cancel');
+
+    for (let i = 0; i < activeSpots.length - 1; i++) {
+      const spotA = activeSpots[i];
+      const spotB = activeSpots[i + 1];
+      const mode = spotA.transportToNext || '';
+
+      const segment = await fetchRouteSegment(spotA, spotB);
+
+      // 移動手段ごとに線の色を変える
+      let lineColor = '#0ea5e9'; // デフォルト水色
+      if (mode === 'bike') lineColor = '#10b981'; // 自転車：エメラルドグリーン
+      if (mode === 'walk') lineColor = '#f59e0b'; // 徒歩：オレンジ
+      if (mode === 'train') lineColor = '#8b5cf6'; // 電車・バス：パープル
+      if (mode === 'car') lineColor = '#3b82f6'; // 車：ブルー
+
+      const polyline = L.polyline(segment.coords, {
+        color: lineColor,
+        weight: 5,
+        opacity: 0.85,
+        dashArray: segment.isStraight ? '8, 8' : null,
+        lineJoin: 'round'
+      }).addTo(window.map);
+
+      window.routeLayers.push(polyline);
+
+      // タイムライン側の距離表示バッジを実際の道のり距離に更新
+      const badgeEl = document.getElementById(`dist-badge-${spotA.id}`);
+      if (badgeEl) {
+        const distStr = formatDistance(segment.distance);
+        if (!segment.isStraight && segment.duration) {
+          const durStr = formatDuration(segment.duration, mode || 'car');
+          badgeEl.innerHTML = `<i data-lucide="navigation" class="w-3 h-3"></i> 道のり ${distStr} (${durStr})`;
+        } else {
+          badgeEl.innerHTML = `<i data-lucide="arrow-down" class="w-3 h-3"></i> 直線 約 ${distStr}`;
+        }
+        lucide.createIcons();
+      }
+    }
+  }
+
+  // 移動手段の更新
+  window.updateTransport = async function(id, mode) {
+    await updateDoc(doc(db, "pins", id), { transportToNext: mode });
+  };
 
   window.toggleSearch = function() { document.getElementById('searchContainer').classList.toggle('hidden'); };
   window.executeSearch = async function() {
@@ -361,11 +533,12 @@
     if(tab === 'map') { 
       document.getElementById('timeline-panel').classList.replace('timeline-visible','timeline-hidden'); 
       document.getElementById('ui-layer').style.display='flex'; 
+      if (window.map) window.map.invalidateSize();
     } else { 
       document.getElementById('timeline-panel').classList.replace('timeline-hidden','timeline-visible'); 
       document.getElementById('ui-layer').style.display='none'; 
       updateTabButtonsUI();
-      renderRouteTimeline(true); // 自動スクロール付きで描画
+      renderRouteTimeline(true);
     }
   };
 
@@ -385,7 +558,14 @@
     renderRouteTimeline(true); 
   };
 
-  // マップ上のピン描画＆詳細ポップアップの強化
+  function getUserBadgeColor(user) {
+    if(user === 'ありねこ') return 'bg-rose-100 text-rose-700 border-rose-200';
+    if(user === 'ことみねこ') return 'bg-teal-100 text-teal-700 border-teal-200';
+    if(user === 'あつきねこ') return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+    return 'bg-slate-100 text-slate-600 border-slate-200';
+  }
+
+  // マップ上のピン描画＆詳細ポップアップ
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
@@ -396,8 +576,20 @@
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
 
+      let evalListHtml = "";
+      if(Array.isArray(spot.evaluations) && spot.evaluations.length > 0) {
+        evalListHtml = `<div class="mt-1 space-y-1 border-t pt-1">` + spot.evaluations.map(ev => 
+          `<div class="text-[10px] bg-pink-50/70 p-1 rounded">
+            <span class="font-bold text-slate-700">🐱 ${ev.user}:</span> <span class="text-amber-500">${'★'.repeat(ev.rating)}</span>
+            ${ev.comment ? `<div class="text-slate-600">${ev.comment}</div>` : ''}
+          </div>`
+        ).join('') + `</div>`;
+      } else if (spot.rating) {
+        evalListHtml = `<div class="text-[10px] text-pink-600 font-bold bg-pink-50 p-1 rounded mt-1">⭐ 評価: ${'★'.repeat(spot.rating)}</div>`;
+      }
+
       let popupContent = `
-      <div class="p-1 font-sans text-xs space-y-1 max-w-[200px]">
+      <div class="p-1 font-sans text-xs space-y-1 max-w-[220px]">
         <div class="font-extrabold text-slate-800 text-sm border-b pb-1">${spot.iconEmoji || '📍'} ${spot.name}</div>
         <div class="text-[10px] text-slate-500 flex justify-between">
           <span>📅 ${spot.date} ${spot.time}</span>
@@ -406,7 +598,7 @@
         <div class="text-[10px] text-sky-600 font-bold">📝 記録: ${spot.recordedBy || 'メンバー'}</div>
         ${spot.comment ? `<div class="text-[10px] bg-slate-50 p-1 rounded text-slate-600">${spot.comment}</div>` : ''}
         ${urlsHtml}
-        ${spot.rating ? `<div class="text-[10px] text-pink-600 font-bold bg-pink-50 p-1 rounded mt-1">⭐ 評価: ${'★'.repeat(spot.rating)}</div>` : ''}
+        ${evalListHtml}
       </div>`;
 
       marker.bindPopup(popupContent);
@@ -414,7 +606,7 @@
     });
   }
 
-  // タイムライン描画 (編集ボタン・未完了位置自動スクロール付き)
+  // タイムライン描画
   function renderRouteTimeline(autoScroll = false) {
     const list = document.getElementById('routeTimelineList');
     const daySpots = window.spots.filter(s => s.date === window.currentDayTab);
@@ -430,48 +622,114 @@
       }
 
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1) + '☆'.repeat(3-(spot.priority||1)));
-      // 「(Safari等)」を消し、「URLをひらく」に変更
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
       
+      let evalsHtml = "";
+      if (Array.isArray(spot.evaluations) && spot.evaluations.length > 0) {
+        evalsHtml = `<div class="space-y-1.5 mt-2 bg-pink-50/40 p-2 rounded-xl border border-pink-100">` + 
+          spot.evaluations.map((ev, evIdx) => {
+            const isMine = ev.user === window.currentUser;
+            const badgeColor = getUserBadgeColor(ev.user);
+            const foodBadge = ev.foodType ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-1">🍽️ ${getFoodName(ev.foodType)} ×${ev.foodCount}</span>` : '';
+            return `
+            <div class="bg-white p-2 rounded-lg border border-pink-100/80 shadow-xs text-xs flex justify-between items-start gap-2">
+              <div class="space-y-0.5 flex-1">
+                <div class="flex items-center flex-wrap gap-1">
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${badgeColor}">🐱 ${ev.user}</span>
+                  <span class="text-amber-400 font-bold text-xs">${'★'.repeat(ev.rating)}</span>
+                  ${foodBadge}
+                </div>
+                ${ev.comment ? `<p class="text-slate-600 text-[11px] pl-1 pt-0.5">${ev.comment}</p>` : ''}
+              </div>
+              ${isMine ? `<button onclick="deleteEvaluation('${spot.id}', ${evIdx})" class="text-[10px] text-rose-400 hover:text-rose-600 bg-rose-50 px-1.5 py-1 rounded font-bold shrink-0">削除</button>` : ''}
+            </div>`;
+          }).join('') + `</div>`;
+      } else if (spot.rating) {
+        evalsHtml = `<div class="text-xs text-pink-700 bg-pink-50 p-2 rounded-xl font-bold">⭐ 評価済: ${'★'.repeat(spot.rating)} ${spot.evalComment || ''}</div>`;
+      }
+
+      // 次のスポットがある場合の「道のり距離 ＆ 行き方選択」コネクター
+      let connectorHtml = "";
+      if (index < daySpots.length - 1) {
+        const nextSpot = daySpots[index + 1];
+        const straightDist = formatDistance(calcStraightDistance(spot.lat, spot.lng, nextSpot.lat, nextSpot.lng));
+        const currentMode = spot.transportToNext || "";
+        
+        const modes = [
+          { key: 'walk', label: '🚶 徒歩' },
+          { key: 'bike', label: '🚲 自転車' },
+          { key: 'train', label: '🚃 電車・バス' },
+          { key: 'car', label: '🚗 シェアカー' }
+        ];
+
+        const modeButtons = modes.map(m => {
+          const active = currentMode === m.key;
+          return `<button onclick="updateTransport('${spot.id}', '${active ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? 'bg-sky-500 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
+        }).join('');
+
+        connectorHtml = `
+        <div class="relative py-2.5 pl-6 flex flex-col gap-1.5">
+          <div class="absolute left-3.5 top-0 bottom-0 w-0.5 border-l-2 border-dashed border-sky-300"></div>
+          <div class="flex items-center gap-2">
+            <span id="dist-badge-${spot.id}" class="text-[10px] font-extrabold text-sky-700 bg-sky-100/90 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+              <i data-lucide="loader" class="w-3 h-3 animate-spin"></i> ルート計算中 (直線 ${straightDist})
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${modeButtons}
+          </div>
+        </div>`;
+      }
+
       return `
-      <div id="timeline-card-${index}" class="p-3.5 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-2">
-        <div class="flex justify-between items-center text-xs">
-          <div class="flex items-center gap-2">
-            <span class="font-extrabold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">${spot.time}</span>
-            <span class="text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
+      <div>
+        <div id="timeline-card-${index}" class="p-3.5 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">${spot.time}</span>
+              <span class="text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
+              <button onclick="deleteSpot('${spot.id}')" class="text-slate-300 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
-            <button onclick="deleteSpot('${spot.id}')" class="text-slate-300 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          <div>
+            <h3 class="font-bold text-sm ${spot.status==='cancel'?'line-through text-slate-400':''}">${spot.iconEmoji||'📍'} ${spot.name}</h3>
+            ${spot.comment ? `<p class="text-xs text-slate-500 mt-1 bg-slate-50 p-2 rounded-xl">${spot.comment}</p>` : ''}
+            <div class="flex flex-col gap-1 mt-1 text-[10px]">${urlsHtml}</div>
+          </div>
+          ${evalsHtml}
+          <div class="pt-2 flex justify-between items-center text-xs border-t border-slate-100">
+            <button onclick="openEditModal('${spot.id}')" class="text-slate-400 hover:text-sky-500 font-bold flex items-center gap-1">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>編集
+            </button>
+            <div class="flex gap-1.5">
+              <button onclick="openEvalModal('${spot.id}')" class="px-2.5 py-1.5 rounded-xl bg-pink-50 text-pink-600 font-bold border border-pink-100">評価・グルメ記録</button>
+              <button onclick="updateStatus('${spot.id}', 'done')" class="px-3 py-1.5 rounded-xl ${isDone?'bg-pink-400 text-white':'bg-slate-100 text-slate-600'} font-bold">✓ 行った</button>
+            </div>
           </div>
         </div>
-        <div>
-          <h3 class="font-bold text-sm ${spot.status==='cancel'?'line-through text-slate-400':''}">${spot.iconEmoji||'📍'} ${spot.name}</h3>
-          ${spot.comment ? `<p class="text-xs text-slate-500 mt-1 bg-slate-50 p-2 rounded-xl">${spot.comment}</p>` : ''}
-          <div class="flex flex-col gap-1 mt-1 text-[10px]">${urlsHtml}</div>
-        </div>
-        ${spot.rating ? `<div class="text-xs text-pink-700 bg-pink-50 p-2 rounded-xl font-bold">⭐ 評価済: ${'★'.repeat(spot.rating)} ${spot.evalComment || ''}</div>` : ''}
-        <div class="pt-2 flex justify-between items-center text-xs border-t border-slate-100">
-          <button onclick="openEditModal('${spot.id}')" class="text-slate-400 hover:text-sky-500 font-bold flex items-center gap-1">
-            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>編集
-          </button>
-          <div class="flex gap-1.5">
-            <button onclick="openEvalModal('${spot.id}')" class="px-2.5 py-1.5 rounded-xl bg-pink-50 text-pink-600 font-bold border border-pink-100">評価・グルメ記録</button>
-            <button onclick="updateStatus('${spot.id}', 'done')" class="px-3 py-1.5 rounded-xl ${isDone?'bg-pink-400 text-white':'bg-slate-100 text-slate-600'} font-bold">✓ 行った</button>
-          </div>
-        </div>
+        ${connectorHtml}
       </div>`;
     }).join('') || '<div class="text-center py-10 text-xs text-slate-400">予定がありません</div>';
 
     lucide.createIcons();
 
-    // 未完了の位置までスクロール
+    // 実際の道のりルートを地図に描画＆距離テキストを更新
+    drawMapRoutesAndUpdateDistances(daySpots);
+
     if(autoScroll && firstUnfinishedIndex !== -1) {
       setTimeout(() => {
         const card = document.getElementById(`timeline-card-${firstUnfinishedIndex}`);
         if(card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     }
+  }
+
+  function getFoodName(type) {
+    const map = { okonomi: 'お好み焼き', oyster: '牡蠣', momiji: 'もみじ饅頭', ramen: '尾道ラーメン', lemon: 'レモン' };
+    return map[type] || '';
   }
 
   window.updateStatus = async function(id, st) {
@@ -509,12 +767,12 @@
     document.getElementById('spotLat').value = lat || (window.map ? window.map.getCenter().lat : 34.25);
     document.getElementById('spotLng').value = lng || (window.map ? window.map.getCenter().lng : 133.00);
     document.getElementById('spotName').value = name;
+    document.getElementById('spotDate').value = window.currentDayTab;
     document.getElementById('spotModal').classList.remove('hidden');
     window.autoSetEmoji();
     lucide.createIcons();
   };
 
-  // みちのりからの「編集モーダル」呼び出し
   window.openEditModal = function(id) {
     const spot = window.spots.find(s => s.id === id);
     if (!spot) return;
@@ -531,7 +789,6 @@
     document.getElementById('spotLat').value = spot.lat;
     document.getElementById('spotLng').value = spot.lng;
 
-    // URL群のセット
     const container = document.getElementById('urlContainer');
     container.innerHTML = `<label class="block font-bold text-slate-600 mb-1">参考URL</label>`;
     const urls = (spot.urls && spot.urls.length > 0) ? spot.urls : [""];
@@ -569,14 +826,13 @@
     };
 
     if(editId) {
-      // 編集更新
       await updateDoc(doc(db, "pins", editId), spotData);
     } else {
-      // 新規追加（記録者名を保存）
       await addDoc(pinsCollection, {
         ...spotData,
         status: 'pending',
-        recordedBy: window.currentUser || 'メンバー'
+        recordedBy: window.currentUser || 'メンバー',
+        evaluations: []
       });
     }
 
@@ -585,6 +841,10 @@
 
   window.openEvalModal = function(id) {
     document.getElementById('evalSpotId').value = id;
+    document.getElementById('evalUserBadge').textContent = `記録者: 🐱 ${window.currentUser || 'メンバー'}`;
+    document.getElementById('evalComment').value = "";
+    document.getElementById('evalFoodType').value = "";
+    document.getElementById('evalFoodCount').value = "1";
     document.getElementById('evalModal').classList.remove('hidden');
   };
   window.closeEvalModal = () => document.getElementById('evalModal').classList.add('hidden');
@@ -592,14 +852,43 @@
   window.submitEvaluation = async function(e) {
     e.preventDefault();
     const id = document.getElementById('evalSpotId').value;
-    await updateDoc(doc(db, "pins", id), {
-      rating: document.getElementById('evalRating').value,
-      evalComment: document.getElementById('evalComment').value,
+    const spot = window.spots.find(s => s.id === id);
+    if (!spot) return;
+
+    const currentUser = window.currentUser || 'メンバー';
+    let evaluations = Array.isArray(spot.evaluations) ? [...spot.evaluations] : [];
+
+    const myIndex = evaluations.findIndex(ev => ev.user === currentUser);
+    const newEval = {
+      user: currentUser,
+      rating: parseInt(document.getElementById('evalRating').value),
+      comment: document.getElementById('evalComment').value.trim(),
       foodType: document.getElementById('evalFoodType').value,
-      foodCount: parseInt(document.getElementById('evalFoodCount').value) || 1,
+      foodCount: parseInt(document.getElementById('evalFoodCount').value) || 1
+    };
+
+    if (myIndex !== -1) {
+      evaluations[myIndex] = newEval;
+    } else {
+      evaluations.push(newEval);
+    }
+
+    await updateDoc(doc(db, "pins", id), {
+      evaluations: evaluations,
       status: 'done'
     });
     closeEvalModal();
+  };
+
+  window.deleteEvaluation = async function(spotId, evalIndex) {
+    if (!confirm("自分の評価記録を削除しますか？")) return;
+    const spot = window.spots.find(s => s.id === spotId);
+    if (!spot || !Array.isArray(spot.evaluations)) return;
+
+    const updatedEvals = spot.evaluations.filter((_, idx) => idx !== evalIndex);
+    await updateDoc(doc(db, "pins", spotId), {
+      evaluations: updatedEvals
+    });
   };
 
   window.resetToDefaultBounds = function() {
