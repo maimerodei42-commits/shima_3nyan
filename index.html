@@ -399,7 +399,7 @@
   window.userWatchId = null;
   window.shouldCenterOnUser = false;
 
-  // localStorageを使った高速キャッシュ読み込み
+  // localStorageを使った高速キャッシュ読み込み（v2: 実線路のみ保存）
   function loadCache(storageKey) {
     try {
       return JSON.parse(localStorage.getItem(storageKey) || "{}");
@@ -417,8 +417,8 @@
     } catch (e) {}
   }
 
-  window.routeCache = loadCache("shimaneko_route_cache_v1");
-  window.railCache = loadCache("shimaneko_rail_cache_v1");
+  window.routeCache = loadCache("shimaneko_route_cache_v2");
+  window.railCache = loadCache("shimaneko_rail_cache_v2");
 
   window.onload = function() {
     lucide.createIcons();
@@ -540,7 +540,6 @@
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { maxZoom: 18, className: 'pale-map-tiles' }).addTo(window.map);
     window.map.on('click', e => openAddModal(e.latlng.lat, e.latlng.lng));
 
-    // マップ初期化と同時に現在地の常時同期を開始
     startUserLocationTracking();
 
     onSnapshot(q, (snapshot) => {
@@ -621,118 +620,162 @@
     window.routeLayers.push(m);
   }
 
-  // OpenStreetMap (Overpass API) から発車駅〜到着駅間の実際の線路上ルートを高速取得
+  // BRouter 鉄道プロファイル + Overpass API で確実に線路上のルートを取得
   async function fetchRailwayGeometry(depStation, arrStation) {
     const cacheKey = `${depStation.lat.toFixed(4)},${depStation.lng.toFixed(4)}_${arrStation.lat.toFixed(4)},${arrStation.lng.toFixed(4)}`;
-    if (window.railCache[cacheKey]) return window.railCache[cacheKey];
-
-    const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
-    if (dist > 150000) {
-      const fallback = { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
-      window.railCache[cacheKey] = fallback;
-      saveCache("shimaneko_rail_cache_v1", window.railCache);
-      return fallback;
+    if (window.railCache[cacheKey] && window.railCache[cacheKey].isRail) {
+      return window.railCache[cacheKey];
     }
 
-    const pad = 0.04;
-    const minLat = Math.min(depStation.lat, arrStation.lat) - pad;
-    const maxLat = Math.max(depStation.lat, arrStation.lat) + pad;
-    const minLng = Math.min(depStation.lng, arrStation.lng) - pad;
-    const maxLng = Math.max(depStation.lng, arrStation.lng) + pad;
+    const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
 
-    const query = `[out:json][timeout:6];way["railway"~"rail|subway|light_rail|tram"](${minLat},${minLng},${maxLat},${maxLng});out geom;`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6500);
-
+    // 1. まず鉄道専用ルーティングエンジン（BRouter railプロファイル）で高速取得
     try {
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        body: query,
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      const data = await res.json();
-      if (data.elements && data.elements.length > 0) {
-        const adj = new Map();
-        const nodeCoords = new Map();
-        const keyOf = (lat, lon) => `${lat.toFixed(5)},${lon.toFixed(5)}`;
+      const brouterUrl = `https://brouter.de/brouter?lonlats=${depStation.lng},${depStation.lat}|${arrStation.lng},${arrStation.lat}&profile=rail&alternativeidx=0&format=geojson`;
+      const ctrl1 = new AbortController();
+      const t1 = setTimeout(() => ctrl1.abort(), 7000);
+      const res1 = await fetch(brouterUrl, { signal: ctrl1.signal });
+      clearTimeout(t1);
 
-        data.elements.forEach(way => {
-          if (!way.geometry || way.geometry.length < 2) return;
-          for (let i = 0; i < way.geometry.length; i++) {
-            const pt = way.geometry[i];
-            const k = keyOf(pt.lat, pt.lon);
-            nodeCoords.set(k, [pt.lat, pt.lon]);
-            if (!adj.has(k)) adj.set(k, []);
-            if (i > 0) {
-              const prev = way.geometry[i - 1];
-              const pk = keyOf(prev.lat, prev.lon);
-              const w = calcStraightDistance(pt.lat, pt.lon, prev.lat, prev.lon);
-              adj.get(k).push({ to: pk, w });
-              adj.get(pk).push({ to: k, w });
-            }
+      if (res1.ok) {
+        const geo = await res1.json();
+        if (geo.features && geo.features.length > 0 && geo.features[0].geometry && geo.features[0].geometry.coordinates.length >= 2) {
+          const coords = geo.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          let totalDist = 0;
+          for (let i = 0; i < coords.length - 1; i++) {
+            totalDist += calcStraightDistance(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
           }
-        });
+          const result = { coords, distance: totalDist, isRail: true };
+          window.railCache[cacheKey] = result;
+          saveCache("shimaneko_rail_cache_v2", window.railCache);
+          return result;
+        }
+      }
+    } catch (e) {}
 
-        let startKey = null, endKey = null;
-        let minStartD = Infinity, minEndD = Infinity;
-        nodeCoords.forEach(([lat, lon], k) => {
-          const d1 = calcStraightDistance(depStation.lat, depStation.lng, lat, lon);
-          if (d1 < minStartD) { minStartD = d1; startKey = k; }
-          const d2 = calcStraightDistance(arrStation.lat, arrStation.lng, lat, lon);
-          if (d2 < minEndD) { minEndD = d2; endKey = k; }
-        });
+    // 2. フォールバック: Overpass API の複数エンドポイントから実際の線路データを取得して最短経路探索
+    if (dist <= 250000) {
+      const pad = 0.12;
+      const minLat = Math.min(depStation.lat, arrStation.lat) - pad;
+      const maxLat = Math.max(depStation.lat, arrStation.lat) + pad;
+      const minLng = Math.min(depStation.lng, arrStation.lng) - pad;
+      const maxLng = Math.max(depStation.lng, arrStation.lng) + pad;
 
-        if (startKey && endKey && minStartD < 2500 && minEndD < 2500) {
-          const distMap = new Map();
-          const prevMap = new Map();
-          const visited = new Set();
-          distMap.set(startKey, 0);
+      const query = `[out:json][timeout:15];way["railway"~"rail|subway|light_rail|tram|narrow_gauge|monorail"](${minLat},${minLng},${maxLat},${maxLng});out geom;`;
+      const endpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter"
+      ];
 
-          while (true) {
-            let u = null, best = Infinity;
-            distMap.forEach((d, k) => {
-              if (!visited.has(k) && d < best) { best = d; u = k; }
+      for (const endpoint of endpoints) {
+        try {
+          const ctrl2 = new AbortController();
+          const t2 = setTimeout(() => ctrl2.abort(), 14000);
+          const res = await fetch(endpoint, {
+            method: "POST",
+            body: query,
+            signal: ctrl2.signal
+          });
+          clearTimeout(t2);
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          if (data.elements && data.elements.length > 0) {
+            const adj = new Map();
+            const nodeCoords = new Map();
+            const keyOf = (lat, lon) => `${lat.toFixed(5)},${lon.toFixed(5)}`;
+
+            data.elements.forEach(way => {
+              if (!way.geometry || way.geometry.length < 2) return;
+              for (let i = 0; i < way.geometry.length; i++) {
+                const pt = way.geometry[i];
+                const k = keyOf(pt.lat, pt.lon);
+                nodeCoords.set(k, [pt.lat, pt.lon]);
+                if (!adj.has(k)) adj.set(k, []);
+                if (i > 0) {
+                  const prev = way.geometry[i - 1];
+                  const pk = keyOf(prev.lat, prev.lon);
+                  const w = calcStraightDistance(pt.lat, pt.lon, prev.lat, prev.lon);
+                  adj.get(k).push({ to: pk, w });
+                  adj.get(pk).push({ to: k, w });
+                }
+              }
             });
-            if (!u || u === endKey) break;
-            visited.add(u);
 
-            const neighbors = adj.get(u) || [];
-            for (const edge of neighbors) {
-              if (visited.has(edge.to)) continue;
-              const alt = best + edge.w;
-              if (alt < (distMap.get(edge.to) ?? Infinity)) {
-                distMap.set(edge.to, alt);
-                prevMap.set(edge.to, u);
+            // 駅座標の周辺5km以内の線路ノード候補を収集
+            const startCandidates = [];
+            const endCandidates = [];
+            nodeCoords.forEach(([lat, lon], k) => {
+              const d1 = calcStraightDistance(depStation.lat, depStation.lng, lat, lon);
+              if (d1 < 5000) startCandidates.push({ k, d: d1 });
+              const d2 = calcStraightDistance(arrStation.lat, arrStation.lng, lat, lon);
+              if (d2 < 5000) endCandidates.push({ k, d: d2 });
+            });
+
+            startCandidates.sort((a, b) => a.d - b.d);
+            endCandidates.sort((a, b) => a.d - b.d);
+
+            if (startCandidates.length > 0 && endCandidates.length > 0) {
+              const endSet = new Set(endCandidates.slice(0, 15).map(c => c.k));
+              const distMap = new Map();
+              const prevMap = new Map();
+              const visited = new Set();
+
+              // 複数の最寄り線路ノードから同時に探索（複線・別ホーム対応）
+              startCandidates.slice(0, 10).forEach(sc => {
+                distMap.set(sc.k, sc.d);
+              });
+
+              let foundEndKey = null;
+              while (true) {
+                let u = null, best = Infinity;
+                distMap.forEach((d, k) => {
+                  if (!visited.has(k) && d < best) { best = d; u = k; }
+                });
+                if (!u) break;
+                if (endSet.has(u)) {
+                  foundEndKey = u;
+                  break;
+                }
+                visited.add(u);
+
+                const neighbors = adj.get(u) || [];
+                for (const edge of neighbors) {
+                  if (visited.has(edge.to)) continue;
+                  const alt = best + edge.w;
+                  if (alt < (distMap.get(edge.to) ?? Infinity)) {
+                    distMap.set(edge.to, alt);
+                    prevMap.set(edge.to, u);
+                  }
+                }
+              }
+
+              if (foundEndKey) {
+                const path = [];
+                let curr = foundEndKey;
+                while (curr) {
+                  path.unshift(nodeCoords.get(curr));
+                  curr = prevMap.get(curr);
+                }
+                if (path.length >= 2) {
+                  let totalDist = 0;
+                  for (let i = 0; i < path.length - 1; i++) {
+                    totalDist += calcStraightDistance(path[i][0], path[i][1], path[i + 1][0], path[i + 1][1]);
+                  }
+                  const result = { coords: path, distance: totalDist, isRail: true };
+                  window.railCache[cacheKey] = result;
+                  saveCache("shimaneko_rail_cache_v2", window.railCache);
+                  return result;
+                }
               }
             }
           }
-
-          if (prevMap.has(endKey) || startKey === endKey) {
-            const path = [];
-            let curr = endKey;
-            while (curr) {
-              path.unshift(nodeCoords.get(curr));
-              curr = prevMap.get(curr);
-            }
-            let totalDist = 0;
-            for (let i = 0; i < path.length - 1; i++) {
-              totalDist += calcStraightDistance(path[i][0], path[i][1], path[i+1][0], path[i+1][1]);
-            }
-            const result = { coords: path, distance: totalDist, isRail: true };
-            window.railCache[cacheKey] = result;
-            saveCache("shimaneko_rail_cache_v1", window.railCache);
-            return result;
-          }
-        }
+        } catch (e) {}
       }
-    } catch (e) {
-      clearTimeout(timer);
     }
 
-    const fallback = { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
-    window.railCache[cacheKey] = fallback;
-    return fallback;
+    // どうしても取得できなかった場合のみ一時表示（キャッシュには保存しない）
+    return { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
   }
 
   async function fetchRouteSegment(spotA, spotB) {
@@ -753,7 +796,7 @@
         mode: mode
       };
       window.routeCache[cacheKey] = res;
-      saveCache("shimaneko_route_cache_v1", window.routeCache);
+      saveCache("shimaneko_route_cache_v2", window.routeCache);
       return res;
     }
 
@@ -777,7 +820,7 @@
           mode: mode
         };
         window.routeCache[cacheKey] = result;
-        saveCache("shimaneko_route_cache_v1", window.routeCache);
+        saveCache("shimaneko_route_cache_v2", window.routeCache);
         return result;
       }
     } catch (e) {
@@ -794,7 +837,7 @@
     };
   }
 
-  // 全区間を並列（Promise.all）で高速取得・描画し、矢印なしで表示
+  // 全区間を並列（Promise.all）で高速取得・描画
   async function drawMapRoutesAndUpdateDistances(daySpots) {
     if (!window.map) return;
 
@@ -837,7 +880,6 @@
 
     const results = await Promise.all(segmentPromises);
 
-    // 途中で別の日付に切り替えられた場合は古い描画を破棄
     if (currentToken !== window.routeRenderToken) return;
 
     window.routeLayers.forEach(layer => window.map.removeLayer(layer));
