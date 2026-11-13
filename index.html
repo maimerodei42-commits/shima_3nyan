@@ -115,25 +115,21 @@
 <div id="splashScreen" class="fixed inset-0 z-[9999] overflow-hidden bg-gradient-to-b from-sky-100 via-cyan-50 to-blue-100 flex flex-col items-center justify-center p-6 text-center">
   
   <!-- ふわふわ浮かぶ大きめの絵文字たち -->
-  <!-- 上段エリア -->
   <div class="floater anim-snow text-5xl sm:text-6xl top-5 left-5 opacity-85" style="animation-delay: 0s;">❄️</div>
   <div class="floater anim-float-1 text-6xl sm:text-7xl top-4 left-1/3" style="animation-delay: 0.4s;">⛩️</div>
   <div class="floater anim-float-2 text-6xl sm:text-7xl top-6 right-6" style="animation-delay: 0.8s;">🍋</div>
   <div class="floater anim-snow text-4xl sm:text-5xl top-24 right-1/4 opacity-75" style="animation-delay: 1.2s;">❄️</div>
 
-  <!-- 中上段エリア（猫トリオ＆サイクリング） -->
   <div class="floater anim-float-2 text-6xl sm:text-7xl top-[17%] left-4" style="animation-delay: 0.3s;">😻</div>
   <div class="floater anim-float-1 text-6xl sm:text-7xl top-[19%] right-4" style="animation-delay: 0.9s;">🚴‍♀️</div>
   <div class="floater anim-float-2 text-5xl sm:text-6xl top-[29%] left-1/4 opacity-90" style="animation-delay: 1.5s;">🍁</div>
   <div class="floater anim-snow text-5xl sm:text-6xl top-[30%] right-1/4 opacity-80" style="animation-delay: 0.6s;">❄️</div>
 
-  <!-- 中下段エリア -->
   <div class="floater anim-float-1 text-6xl sm:text-7xl bottom-[27%] left-3" style="animation-delay: 0.7s;">🦪</div>
   <div class="floater anim-float-2 text-6xl sm:text-7xl bottom-[26%] right-3" style="animation-delay: 0.2s;">😽</div>
   <div class="floater anim-float-1 text-5xl sm:text-6xl bottom-[20%] left-1/3 opacity-90" style="animation-delay: 1.1s;">🚵‍♀️</div>
   <div class="floater anim-float-2 text-5xl sm:text-6xl bottom-[19%] right-1/3 opacity-90" style="animation-delay: 1.6s;">🥞</div>
 
-  <!-- 下段エリア（瀬戸内の海とグルメ） -->
   <div class="floater anim-float-2 text-6xl sm:text-7xl bottom-14 left-6" style="animation-delay: 0.5s;">😺</div>
   <div class="floater anim-float-1 text-5xl sm:text-6xl bottom-16 right-6" style="animation-delay: 1.0s;">🍜</div>
   <div class="floater anim-wave text-6xl sm:text-7xl bottom-2 left-4 opacity-90" style="animation-delay: 0s;">🌊</div>
@@ -229,7 +225,7 @@
     <div class="flex items-center justify-between mb-3">
       <div>
         <h2 class="font-bold text-sky-700 text-base m-0 flex items-center gap-1.5"><i data-lucide="route" class="w-5 h-5"></i>📍 旅のみちのり順</h2>
-        <p class="text-[10px] text-slate-400 m-0">11/30 〜 12/03 の予定タイムライン</p>
+        <p class="text-[10px] text-slate-400 m-0">11/30 〜 12/03 の予定タイムライン（同時間は①②で順番変更）</p>
       </div>
     </div>
     <div class="flex gap-2 overflow-x-auto hide-scrollbar" id="tabContainer">
@@ -279,9 +275,36 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <div><label class="block font-bold text-slate-600 mb-1">日付</label><select id="spotDate" required class="w-full border rounded-xl p-2.5 bg-white"><option value="11/30">11/30 (月)</option><option value="12/01">12/01 (火)</option><option value="12/02">12/02 (水)</option><option value="12/03">12/03 (木)</option></select></div>
-        <div><label class="block font-bold text-slate-600 mb-1">時間</label><select id="spotTime" required class="w-full border rounded-xl p-2.5 bg-white"></select></div>
+      <!-- 日付・時間・同時間内の順番（①②③） -->
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">日付</label>
+          <select id="spotDate" onchange="suggestNextOrder()" required class="w-full border rounded-xl p-2.5 bg-white">
+            <option value="11/30">11/30 (月)</option>
+            <option value="12/01">12/01 (火)</option>
+            <option value="12/02">12/02 (水)</option>
+            <option value="12/03">12/03 (木)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">時間</label>
+          <select id="spotTime" onchange="suggestNextOrder()" required class="w-full border rounded-xl p-2.5 bg-white"></select>
+        </div>
+        <div>
+          <label class="block font-bold text-sky-700 mb-1">順番 ①②</label>
+          <select id="spotOrder" class="w-full border border-sky-200 rounded-xl p-2.5 bg-sky-50/70 font-bold text-sky-800">
+            <option value="1">① 1番目</option>
+            <option value="2">② 2番目</option>
+            <option value="3">③ 3番目</option>
+            <option value="4">④ 4番目</option>
+            <option value="5">⑤ 5番目</option>
+            <option value="6">⑥ 6番目</option>
+            <option value="7">⑦ 7番目</option>
+            <option value="8">⑧ 8番目</option>
+            <option value="9">⑨ 9番目</option>
+            <option value="10">⑩ 10番目</option>
+          </select>
+        </div>
       </div>
 
       <!-- 写真添付エリア -->
@@ -457,7 +480,28 @@
   window.userWatchId = null;
   window.shouldCenterOnUser = false;
 
-  // localStorageを使った高速キャッシュ読み込み（v2: 実線路のみ保存）
+  const CIRCLED_NUMS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+  function toCircledNum(n) {
+    const idx = Math.max(1, Math.min(10, parseInt(n) || 1)) - 1;
+    return CIRCLED_NUMS[idx];
+  }
+
+  function buildSortTime(dateStr, timeStr, orderNum) {
+    const base = parseInt(dateStr.replace('/', '') + timeStr.replace(':', ''), 10);
+    const ord = Math.max(1, Math.min(99, parseInt(orderNum) || 1));
+    return base * 100 + ord;
+  }
+
+  function getSpotOrder(spot) {
+    if (spot.orderInTime) return parseInt(spot.orderInTime) || 1;
+    if (spot.sortTime) {
+      const rem = spot.sortTime % 100;
+      if (rem >= 1 && rem <= 10) return rem;
+    }
+    return 1;
+  }
+
+  // localStorageを使った高速キャッシュ読み込み
   function loadCache(storageKey) {
     try {
       return JSON.parse(localStorage.getItem(storageKey) || "{}");
@@ -619,6 +663,10 @@
           }
         }
       });
+
+      // クライアント側でも sortTime 順に厳密ソート
+      window.spots.sort((a, b) => (a.sortTime || 0) - (b.sortTime || 0));
+
       ['okonomi','oyster','momiji','ramen','lemon'].forEach(k => document.getElementById(`cnt-${k}`).innerText = foodTotals[k]);
       
       if (window.isFirstLoad) {
@@ -668,7 +716,6 @@
     return `約 ${h}時間${m > 0 ? m + '分' : ''}`;
   }
 
-  // 駅ラベルを表示
   function addStationPin(lat, lng, label) {
     const stHtml = `<div class="bg-purple-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border border-white shadow-md whitespace-nowrap">🚉 ${label}</div>`;
     const m = L.marker([lat, lng], {
@@ -678,7 +725,6 @@
     window.routeLayers.push(m);
   }
 
-  // BRouter 鉄道プロファイル + Overpass API で確実に線路上のルートを取得
   async function fetchRailwayGeometry(depStation, arrStation) {
     const cacheKey = `${depStation.lat.toFixed(4)},${depStation.lng.toFixed(4)}_${arrStation.lat.toFixed(4)},${arrStation.lng.toFixed(4)}`;
     if (window.railCache[cacheKey] && window.railCache[cacheKey].isRail) {
@@ -687,7 +733,6 @@
 
     const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
 
-    // 1. まず鉄道専用ルーティングエンジン（BRouter railプロファイル）で高速取得
     try {
       const brouterUrl = `https://brouter.de/brouter?lonlats=${depStation.lng},${depStation.lat}|${arrStation.lng},${arrStation.lat}&profile=rail&alternativeidx=0&format=geojson`;
       const ctrl1 = new AbortController();
@@ -711,7 +756,6 @@
       }
     } catch (e) {}
 
-    // 2. フォールバック: Overpass API の複数エンドポイントから実際の線路データを取得して最短経路探索
     if (dist <= 250000) {
       const pad = 0.12;
       const minLat = Math.min(depStation.lat, arrStation.lat) - pad;
@@ -892,7 +936,6 @@
     };
   }
 
-  // 全区間を並列（Promise.all）で高速取得・描画
   async function drawMapRoutesAndUpdateDistances(daySpots) {
     if (!window.map) return;
 
@@ -999,6 +1042,34 @@
 
     lucide.createIcons();
   }
+
+  // 同じ日付・同じ時間の予定同士をタイムライン上で直接入れ替える
+  window.swapSameTimeOrder = async function(spotIdA, spotIdB) {
+    const spotA = window.spots.find(s => s.id === spotIdA);
+    const spotB = window.spots.find(s => s.id === spotIdB);
+    if (!spotA || !spotB) return;
+
+    const sameGroup = window.spots.filter(s => s.date === spotA.date && s.time === spotA.time);
+    const idxA = sameGroup.findIndex(s => s.id === spotIdA);
+    const idxB = sameGroup.findIndex(s => s.id === spotIdB);
+    if (idxA === -1 || idxB === -1) return;
+
+    // グループ配列内の位置を入れ替えて1番から連番を振り直す
+    const reordered = [...sameGroup];
+    const temp = reordered[idxA];
+    reordered[idxA] = reordered[idxB];
+    reordered[idxB] = temp;
+
+    await Promise.all(
+      reordered.map((sp, i) => {
+        const newOrder = i + 1;
+        return updateDoc(doc(db, "pins", sp.id), {
+          orderInTime: newOrder,
+          sortTime: buildSortTime(sp.date, sp.time, newOrder)
+        });
+      })
+    );
+  };
 
   window.updateTransport = async function(id, mode) {
     if (mode === 'train') {
@@ -1172,7 +1243,6 @@
     return { badge: 'bg-slate-100 text-slate-600 border-slate-200', card: 'bg-slate-50 border-slate-200' };
   }
 
-  // 写真を追加しても選択した絵文字アイコンをピンに表示
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
@@ -1184,6 +1254,9 @@
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
       let photoHtml = spot.photo ? `<img src="${spot.photo}" class="w-full max-h-28 object-cover rounded-lg my-1 border border-slate-200">` : '';
+
+      const sameTimeList = window.spots.filter(s => s.date === spot.date && s.time === spot.time);
+      const orderLabel = sameTimeList.length > 1 ? ` ${toCircledNum(sameTimeList.findIndex(s => s.id === spot.id) + 1)}` : '';
 
       let evalListHtml = "";
       if(Array.isArray(spot.evaluations) && spot.evaluations.length > 0) {
@@ -1205,7 +1278,7 @@
       <div class="p-1 font-sans text-xs space-y-1 max-w-[230px]">
         <div class="font-extrabold text-slate-800 text-sm border-b pb-1">${spot.iconEmoji || '📍'} ${spot.name}</div>
         <div class="text-[10px] text-slate-500 flex justify-between">
-          <span>📅 ${spot.date} ${spot.time}</span>
+          <span>📅 ${spot.date} ${spot.time}${orderLabel}</span>
           <span class="font-bold text-amber-500">${prioText}</span>
         </div>
         <div class="text-[10px] text-sky-600 font-bold">📝 記録: ${spot.recordedBy || 'メンバー'}</div>
@@ -1233,6 +1306,25 @@
 
       if(!isDone && !isCancel && firstUnfinishedIndex === -1) {
         firstUnfinishedIndex = index;
+      }
+
+      // 同じ日付・同じ時間の予定グループと位置を判定
+      const sameTimeGroup = daySpots.filter(s => s.time === spot.time);
+      const posInSameTime = sameTimeGroup.findIndex(s => s.id === spot.id);
+      const hasSameTimeSiblings = sameTimeGroup.length > 1;
+      const circledBadge = hasSameTimeSiblings
+        ? `<span class="text-xs font-extrabold text-sky-700 bg-white border border-sky-200 px-1.5 py-0.5 rounded-full">${toCircledNum(posInSameTime + 1)}</span>`
+        : '';
+
+      let reorderButtonsHtml = '';
+      if (hasSameTimeSiblings) {
+        const prevSame = posInSameTime > 0 ? sameTimeGroup[posInSameTime - 1] : null;
+        const nextSame = posInSameTime < sameTimeGroup.length - 1 ? sameTimeGroup[posInSameTime + 1] : null;
+        reorderButtonsHtml = `
+        <div class="inline-flex items-center gap-0.5 bg-sky-50 border border-sky-200 rounded-full px-1 py-0.5">
+          <button onclick="swapSameTimeOrder('${spot.id}', '${prevSame ? prevSame.id : ''}')" ${!prevSame ? 'disabled' : ''} title="同じ時間内で1つ上へ" class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-extrabold ${prevSame ? 'text-sky-700 hover:bg-sky-200 active:scale-90' : 'text-slate-300 cursor-not-allowed'}">↑</button>
+          <button onclick="swapSameTimeOrder('${spot.id}', '${nextSame ? nextSame.id : ''}')" ${!nextSame ? 'disabled' : ''} title="同じ時間内で1つ下へ" class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-extrabold ${nextSame ? 'text-sky-700 hover:bg-sky-200 active:scale-90' : 'text-slate-300 cursor-not-allowed'}">↓</button>
+        </div>`;
       }
 
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1) + '☆'.repeat(3-(spot.priority||1)));
@@ -1315,12 +1407,14 @@
       return `
       <div>
         <div id="timeline-card-${index}" class="p-3.5 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-2">
-          <div class="flex justify-between items-center text-xs">
-            <div class="flex items-center gap-2">
+          <div class="flex justify-between items-center text-xs gap-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="font-extrabold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">${spot.time}</span>
+              ${circledBadge}
+              ${reorderButtonsHtml}
               <span class="text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 shrink-0">
               <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
               ${isMySpot ? `<button onclick="deleteSpot('${spot.id}')" title="自分の予定を削除" class="text-rose-400 hover:text-rose-600 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
             </div>
@@ -1397,6 +1491,17 @@
     }
   };
 
+  // 新規追加時、選択した日付・時間に既存の予定があれば次の番号（②, ③...）を自動提案
+  window.suggestNextOrder = function() {
+    const editId = document.getElementById('editSpotId').value;
+    if (editId) return;
+    const selectedDate = document.getElementById('spotDate').value;
+    const selectedTime = document.getElementById('spotTime').value;
+    const sameCount = window.spots.filter(s => s.date === selectedDate && s.time === selectedTime).length;
+    const nextOrd = Math.min(10, sameCount + 1);
+    document.getElementById('spotOrder').value = String(nextOrd);
+  };
+
   window.openAddModal = function(lat, lng, name="") {
     document.getElementById('spotForm').reset();
     document.getElementById('editSpotId').value = "";
@@ -1407,6 +1512,7 @@
     document.getElementById('spotLng').value = lng || (window.map ? window.map.getCenter().lng : 133.00);
     document.getElementById('spotName').value = name;
     document.getElementById('spotDate').value = window.currentDayTab;
+    window.suggestNextOrder();
     document.getElementById('spotModal').classList.remove('hidden');
     window.autoSetEmoji();
     lucide.createIcons();
@@ -1422,6 +1528,12 @@
     document.getElementById('spotName').value = spot.name || "";
     document.getElementById('spotDate').value = spot.date || "11/30";
     document.getElementById('spotTime').value = spot.time || "09:00";
+
+    const sameTimeList = window.spots.filter(s => s.date === spot.date && s.time === spot.time);
+    const currentPos = sameTimeList.findIndex(s => s.id === spot.id);
+    const ordVal = currentPos !== -1 ? (currentPos + 1) : getSpotOrder(spot);
+    document.getElementById('spotOrder').value = String(Math.min(10, Math.max(1, ordVal)));
+
     document.getElementById('spotPriority').value = spot.priority || "3";
     document.getElementById('spotEmoji').value = spot.iconEmoji || "📍";
     document.getElementById('spotComment').value = spot.comment || "";
@@ -1458,12 +1570,23 @@
     e.preventDefault();
     const editId = document.getElementById('editSpotId').value;
     const urls = Array.from(document.querySelectorAll('.spotUrlInput')).map(i=>i.value.trim()).filter(v=>v!=="");
-    
+    const dateVal = document.getElementById('spotDate').value;
+    const timeVal = document.getElementById('spotTime').value;
+    const orderVal = parseInt(document.getElementById('spotOrder').value, 10) || 1;
+
+    // 同じ日付・同じ時間の他スポットと順番が重複しないように整列して保存
+    const othersSameTime = window.spots
+      .filter(s => s.date === dateVal && s.time === timeVal && s.id !== editId);
+
+    const targetIndex = Math.max(0, Math.min(othersSameTime.length, orderVal - 1));
+    const finalOrder = targetIndex + 1;
+
     const spotData = {
       name: document.getElementById('spotName').value,
-      date: document.getElementById('spotDate').value,
-      time: document.getElementById('spotTime').value,
-      sortTime: parseInt(document.getElementById('spotDate').value.replace('/','') + document.getElementById('spotTime').value.replace(':','')) * 100,
+      date: dateVal,
+      time: timeVal,
+      orderInTime: finalOrder,
+      sortTime: buildSortTime(dateVal, timeVal, finalOrder),
       priority: document.getElementById('spotPriority').value,
       iconEmoji: document.getElementById('spotEmoji').value,
       comment: document.getElementById('spotComment').value,
@@ -1473,17 +1596,32 @@
       lng: parseFloat(document.getElementById('spotLng').value)
     };
 
+    const batchUpdates = [];
+    // 同じ時間の他スポットの番号も綺麗に①②③...に振り直す
+    let seq = 1;
+    othersSameTime.forEach((sp, idx) => {
+      if (idx === targetIndex) seq++;
+      if (getSpotOrder(sp) !== seq || sp.sortTime !== buildSortTime(dateVal, timeVal, seq)) {
+        batchUpdates.push(updateDoc(doc(db, "pins", sp.id), {
+          orderInTime: seq,
+          sortTime: buildSortTime(dateVal, timeVal, seq)
+        }));
+      }
+      seq++;
+    });
+
     if(editId) {
-      await updateDoc(doc(db, "pins", editId), spotData);
+      batchUpdates.push(updateDoc(doc(db, "pins", editId), spotData));
     } else {
-      await addDoc(pinsCollection, {
+      batchUpdates.push(addDoc(pinsCollection, {
         ...spotData,
         status: 'pending',
         recordedBy: window.currentUser || 'メンバー',
         evaluations: []
-      });
+      }));
     }
 
+    await Promise.all(batchUpdates);
     closeAddModal();
   };
 
