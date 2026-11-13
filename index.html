@@ -240,6 +240,52 @@
   </div>
 </div>
 
+<!-- 駅選択（発車駅・到着駅）モーダル -->
+<div id="stationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative border border-purple-100">
+    <button type="button" onclick="closeStationModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <h3 class="text-base font-bold text-purple-700 mb-1 flex items-center gap-1.5">🚃 発車駅・到着駅を選択</h3>
+    <p class="text-[11px] text-slate-500 mb-3">駅を選択すると路線図に沿ったルートと矢印を地図に引きます。</p>
+    
+    <form onsubmit="saveStationRoute(event)" class="space-y-3 text-xs">
+      <input type="hidden" id="stationSpotId">
+      
+      <!-- 発車駅 -->
+      <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1.5">
+        <label class="block font-bold text-purple-800">🚉 発車駅</label>
+        <div class="flex gap-1.5">
+          <input type="text" id="depStationInput" placeholder="例: 広島駅、尾道駅..." class="flex-1 border border-purple-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-purple-400">
+          <button type="button" onclick="searchStation('dep')" class="bg-purple-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+        </div>
+        <ul id="depStationResults" class="divide-y divide-purple-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs"></ul>
+        <p id="depStationSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
+        <input type="hidden" id="depStationLat">
+        <input type="hidden" id="depStationLng">
+        <input type="hidden" id="depStationName">
+      </div>
+
+      <!-- 到着駅 -->
+      <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1.5">
+        <label class="block font-bold text-purple-800">🏁 到着駅</label>
+        <div class="flex gap-1.5">
+          <input type="text" id="arrStationInput" placeholder="例: 宮島口駅、今治駅..." class="flex-1 border border-purple-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-purple-400">
+          <button type="button" onclick="searchStation('arr')" class="bg-purple-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+        </div>
+        <ul id="arrStationResults" class="divide-y divide-purple-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs"></ul>
+        <p id="arrStationSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
+        <input type="hidden" id="arrStationLat">
+        <input type="hidden" id="arrStationLng">
+        <input type="hidden" id="arrStationName">
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button type="button" onclick="closeStationModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">キャンセル</button>
+        <button type="submit" id="btnSaveStation" class="w-2/3 py-2.5 rounded-xl bg-purple-600 text-white font-bold shadow-sm">路線ルートを確定</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- 評価＆カウンター モーダル -->
 <div id="evalModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-xl max-w-xs w-full p-5 relative">
@@ -287,7 +333,6 @@
         <button type="submit" id="btnSubmitEval" class="w-1/2 py-2 rounded-xl bg-sky-500 text-white font-bold">記録する</button>
       </div>
 
-      <!-- 評価したこと自体を消すボタン（すでに評価済みの場合に表示） -->
       <div id="deleteMyEvalWrapper" class="pt-2 border-t border-slate-100 hidden">
         <button type="button" onclick="deleteMyEvaluationFromModal()" class="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold flex items-center justify-center gap-1 transition">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 評価したこと自体を取り消す（削除）
@@ -316,6 +361,7 @@
   window.markers = [];
   window.routeLayers = [];
   window.routeCache = {};
+  window.railCache = {};
   window.spots = [];
   window.currentDayTab = "11/30";
   window.isFirstLoad = true;
@@ -440,6 +486,143 @@
     return `約 ${h}時間${m > 0 ? m + '分' : ''}`;
   }
 
+  // 2点間の角度を計算して進行方向の矢印マーカーを配置
+  function addDirectionArrow(lat1, lng1, lat2, lng2, color) {
+    const midLat = (lat1 + lat2) / 2;
+    const midLng = (lng1 + lng2) / 2;
+    const dy = lat2 - lat1;
+    const dx = Math.cos(Math.PI / 180 * lat1) * (lng2 - lng1);
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI); // 東向きを0度とした角度
+    const cssRotate = -angle; // CSS rotateは時計回りなので反転
+
+    const arrowHtml = `<div style="transform: rotate(${cssRotate}deg); color: ${color}; font-size: 16px; font-weight: 900; text-shadow: 0 0 3px white, 0 0 3px white; line-height: 1;">➤</div>`;
+    const arrowMarker = L.marker([midLat, midLng], {
+      icon: L.divIcon({ html: arrowHtml, className: '', iconSize: [18, 18], iconAnchor: [9, 9] }),
+      interactive: false
+    }).addTo(window.map);
+    window.routeLayers.push(arrowMarker);
+  }
+
+  // 駅アイコンを地図上に表示（発車駅・到着駅）
+  function addStationPin(lat, lng, label) {
+    const stHtml = `<div class="bg-purple-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border border-white shadow-md whitespace-nowrap">🚉 ${label}</div>`;
+    const m = L.marker([lat, lng], {
+      icon: L.divIcon({ html: stHtml, className: '', iconSize: [60, 20], iconAnchor: [30, 10] }),
+      interactive: false
+    }).addTo(window.map);
+    window.routeLayers.push(m);
+  }
+
+  // OpenStreetMap (Overpass API) から発車駅〜到着駅間の鉄道路線形状を取得
+  async function fetchRailwayGeometry(depStation, arrStation) {
+    const cacheKey = `${depStation.lat.toFixed(4)},${depStation.lng.toFixed(4)}_${arrStation.lat.toFixed(4)},${arrStation.lng.toFixed(4)}`;
+    if (window.railCache[cacheKey]) return window.railCache[cacheKey];
+
+    const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
+    // 長距離（120km超）はAPI負荷を避けて駅間直結
+    if (dist > 120000) {
+      const fallback = { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
+      window.railCache[cacheKey] = fallback;
+      return fallback;
+    }
+
+    const pad = 0.08;
+    const minLat = Math.min(depStation.lat, arrStation.lat) - pad;
+    const maxLat = Math.max(depStation.lat, arrStation.lat) + pad;
+    const minLng = Math.min(depStation.lng, arrStation.lng) - pad;
+    const maxLng = Math.max(depStation.lng, arrStation.lng) + pad;
+
+    const query = `[out:json][timeout:10];way["railway"~"rail|subway|light_rail|tram"](${minLat},${minLng},${maxLat},${maxLng});out geom;`;
+    try {
+      const res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: query
+      });
+      const data = await res.json();
+      if (data.elements && data.elements.length > 0) {
+        // 線路ノード群をグラフ化して発車駅最寄りノードから到着駅最寄りノードへの最短経路を探索
+        const adj = new Map();
+        const nodeCoords = new Map();
+        const keyOf = (lat, lon) => `${lat.toFixed(5)},${lon.toFixed(5)}`;
+
+        data.elements.forEach(way => {
+          if (!way.geometry || way.geometry.length < 2) return;
+          for (let i = 0; i < way.geometry.length; i++) {
+            const pt = way.geometry[i];
+            const k = keyOf(pt.lat, pt.lon);
+            nodeCoords.set(k, [pt.lat, pt.lon]);
+            if (!adj.has(k)) adj.set(k, []);
+            if (i > 0) {
+              const prev = way.geometry[i - 1];
+              const pk = keyOf(prev.lat, prev.lon);
+              const w = calcStraightDistance(pt.lat, pt.lon, prev.lat, prev.lon);
+              adj.get(k).push({ to: pk, w });
+              adj.get(pk).push({ to: k, w });
+            }
+          }
+        });
+
+        let startKey = null, endKey = null;
+        let minStartD = Infinity, minEndD = Infinity;
+        nodeCoords.forEach(([lat, lon], k) => {
+          const d1 = calcStraightDistance(depStation.lat, depStation.lng, lat, lon);
+          if (d1 < minStartD) { minStartD = d1; startKey = k; }
+          const d2 = calcStraightDistance(arrStation.lat, arrStation.lng, lat, lon);
+          if (d2 < minEndD) { minEndD = d2; endKey = k; }
+        });
+
+        if (startKey && endKey && minStartD < 2500 && minEndD < 2500) {
+          // ダイクストラ法で線路上の経路を探索
+          const distMap = new Map();
+          const prevMap = new Map();
+          const visited = new Set();
+          distMap.set(startKey, 0);
+
+          while (true) {
+            let u = null, best = Infinity;
+            distMap.forEach((d, k) => {
+              if (!visited.has(k) && d < best) { best = d; u = k; }
+            });
+            if (!u || u === endKey) break;
+            visited.add(u);
+
+            const neighbors = adj.get(u) || [];
+            for (const edge of neighbors) {
+              if (visited.has(edge.to)) continue;
+              const alt = best + edge.w;
+              if (alt < (distMap.get(edge.to) ?? Infinity)) {
+                distMap.set(edge.to, alt);
+                prevMap.set(edge.to, u);
+              }
+            }
+          }
+
+          if (prevMap.has(endKey) || startKey === endKey) {
+            const path = [];
+            let curr = endKey;
+            while (curr) {
+              path.unshift(nodeCoords.get(curr));
+              curr = prevMap.get(curr);
+            }
+            const fullCoords = [[depStation.lat, depStation.lng], ...path, [arrStation.lat, arrStation.lng]];
+            let totalDist = 0;
+            for (let i = 0; i < fullCoords.length - 1; i++) {
+              totalDist += calcStraightDistance(fullCoords[i][0], fullCoords[i][1], fullCoords[i+1][0], fullCoords[i+1][1]);
+            }
+            const result = { coords: fullCoords, distance: totalDist, isRail: true };
+            window.railCache[cacheKey] = result;
+            return result;
+          }
+        }
+      }
+    } catch (e) {}
+
+    const fallback = { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
+    window.railCache[cacheKey] = fallback;
+    return fallback;
+  }
+
+  // OSRM ルーティングAPI
   async function fetchRouteSegment(spotA, spotB) {
     const mode = spotA.transportToNext || 'car';
     const cacheKey = `${spotA.lat.toFixed(5)},${spotA.lng.toFixed(5)}_${spotB.lat.toFixed(5)},${spotB.lng.toFixed(5)}_${mode}`;
@@ -448,7 +631,7 @@
       return window.routeCache[cacheKey];
     }
 
-    if (mode === 'train' || mode === 'plane') {
+    if (mode === 'plane') {
       const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
       const res = {
         coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
@@ -508,7 +691,51 @@
       const spotA = activeSpots[i];
       const spotB = activeSpots[i + 1];
       const mode = spotA.transportToNext || '';
+      const badgeEl = document.getElementById(`dist-badge-${spotA.id}`);
 
+      // 電車・バス選択時で、発車駅・到着駅が設定されている場合
+      if (mode === 'train' && spotA.trainRoute && spotA.trainRoute.dep && spotA.trainRoute.arr) {
+        const dep = spotA.trainRoute.dep;
+        const arr = spotA.trainRoute.arr;
+
+        // 1. 出発スポット → 発車駅（徒歩アクセス線）
+        const walkToDep = await fetchRouteSegment(spotA, dep);
+        const line1 = L.polyline(walkToDep.coords, { color: '#94a3b8', weight: 4, dashArray: '5, 5', opacity: 0.8 }).addTo(window.map);
+        window.routeLayers.push(line1);
+
+        // 2. 発車駅 → 到着駅（鉄道路線ルート + 矢印）
+        const railSeg = await fetchRailwayGeometry(dep, arr);
+        const lineRail = L.polyline(railSeg.coords, {
+          color: '#8b5cf6',
+          weight: 5,
+          opacity: 0.9,
+          dashArray: railSeg.isRail ? null : '8, 6'
+        }).addTo(window.map);
+        window.routeLayers.push(lineRail);
+
+        // 路線の中間地点に進行方向の矢印（➤）を描画
+        const midIdx = Math.floor(railSeg.coords.length / 2);
+        const p1 = railSeg.coords[Math.max(0, midIdx - 1)];
+        const p2 = railSeg.coords[Math.min(railSeg.coords.length - 1, midIdx)];
+        addDirectionArrow(p1[0], p1[1], p2[0], p2[1], '#7c3aed');
+
+        // 駅ラベルを表示
+        addStationPin(dep.lat, dep.lng, dep.name);
+        addStationPin(arr.lat, arr.lng, arr.name);
+
+        // 3. 到着駅 → 目的スポット（徒歩アクセス線）
+        const walkFromArr = await fetchRouteSegment(arr, spotB);
+        const line3 = L.polyline(walkFromArr.coords, { color: '#94a3b8', weight: 4, dashArray: '5, 5', opacity: 0.8 }).addTo(window.map);
+        window.routeLayers.push(line3);
+
+        if (badgeEl) {
+          const totalDist = walkToDep.distance + railSeg.distance + walkFromArr.distance;
+          badgeEl.innerHTML = `🚃 ${dep.name} → ${arr.name} (約 ${formatDistance(totalDist)})`;
+        }
+        continue;
+      }
+
+      // 通常のルート（徒歩・自転車・シェアカー・飛行機）
       const segment = await fetchRouteSegment(spotA, spotB);
 
       let lineColor = '#0ea5e9';
@@ -525,10 +752,16 @@
         dashArray: segment.isStraight ? '8, 8' : null,
         lineJoin: 'round'
       }).addTo(window.map);
-
       window.routeLayers.push(polyline);
 
-      const badgeEl = document.getElementById(`dist-badge-${spotA.id}`);
+      // 中間地点に進行方向矢印を配置
+      if (segment.coords.length >= 2) {
+        const midIdx = Math.floor(segment.coords.length / 2);
+        const p1 = segment.coords[Math.max(0, midIdx - 1)];
+        const p2 = segment.coords[Math.min(segment.coords.length - 1, midIdx)];
+        addDirectionArrow(p1[0], p1[1], p2[0], p2[1], lineColor);
+      }
+
       if (badgeEl) {
         const distStr = formatDistance(segment.distance);
         if (mode === 'plane') {
@@ -544,8 +777,122 @@
     }
   }
 
+  // 移動手段の更新（「🚃 電車・バス」選択時は発車駅・到着駅選択モーダルを開く）
   window.updateTransport = async function(id, mode) {
+    if (mode === 'train') {
+      openStationModal(id);
+      return;
+    }
     await updateDoc(doc(db, "pins", id), { transportToNext: mode });
+  };
+
+  // 駅選択モーダルを開く
+  window.openStationModal = function(spotId) {
+    const spot = window.spots.find(s => s.id === spotId);
+    if (!spot) return;
+
+    document.getElementById('stationSpotId').value = spotId;
+    document.getElementById('depStationResults').innerHTML = "";
+    document.getElementById('arrStationResults').innerHTML = "";
+
+    if (spot.trainRoute && spot.trainRoute.dep && spot.trainRoute.arr) {
+      document.getElementById('depStationInput').value = spot.trainRoute.dep.name;
+      document.getElementById('depStationName').value = spot.trainRoute.dep.name;
+      document.getElementById('depStationLat').value = spot.trainRoute.dep.lat;
+      document.getElementById('depStationLng').value = spot.trainRoute.dep.lng;
+      const depLbl = document.getElementById('depStationSelectedLabel');
+      depLbl.textContent = `✓ 選択済: ${spot.trainRoute.dep.name}`;
+      depLbl.classList.remove('hidden');
+
+      document.getElementById('arrStationInput').value = spot.trainRoute.arr.name;
+      document.getElementById('arrStationName').value = spot.trainRoute.arr.name;
+      document.getElementById('arrStationLat').value = spot.trainRoute.arr.lat;
+      document.getElementById('arrStationLng').value = spot.trainRoute.arr.lng;
+      const arrLbl = document.getElementById('arrStationSelectedLabel');
+      arrLbl.textContent = `✓ 選択済: ${spot.trainRoute.arr.name}`;
+      arrLbl.classList.remove('hidden');
+    } else {
+      document.getElementById('depStationInput').value = "";
+      document.getElementById('depStationName').value = "";
+      document.getElementById('depStationLat').value = "";
+      document.getElementById('depStationLng').value = "";
+      document.getElementById('depStationSelectedLabel').classList.add('hidden');
+
+      document.getElementById('arrStationInput').value = "";
+      document.getElementById('arrStationName').value = "";
+      document.getElementById('arrStationLat').value = "";
+      document.getElementById('arrStationLng').value = "";
+      document.getElementById('arrStationSelectedLabel').classList.add('hidden');
+    }
+
+    document.getElementById('stationModal').classList.remove('hidden');
+    lucide.createIcons();
+  };
+
+  window.closeStationModal = () => document.getElementById('stationModal').classList.add('hidden');
+
+  // 駅名検索処理
+  window.searchStation = async function(type) {
+    const inputEl = document.getElementById(type === 'dep' ? 'depStationInput' : 'arrStationInput');
+    const ul = document.getElementById(type === 'dep' ? 'depStationResults' : 'arrStationResults');
+    const raw = inputEl.value.trim();
+    if (!raw) return;
+
+    ul.innerHTML = `<li class="p-2 text-slate-400">検索中...</li>`;
+    const queryStr = raw.endsWith('駅') ? raw : `${raw} 駅`;
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&countrycodes=jp`);
+    const data = await res.json();
+
+    ul.innerHTML = "";
+    if (data.length > 0) {
+      data.slice(0, 5).forEach(item => {
+        const stName = item.display_name.split(',')[0];
+        const li = document.createElement('li');
+        li.className = "p-2 hover:bg-purple-50 cursor-pointer flex justify-between items-center";
+        li.innerHTML = `<span class="font-bold text-slate-700">🚉 ${stName}</span><span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">選択</span>`;
+        li.onclick = () => {
+          document.getElementById(`${type}StationName`).value = stName;
+          document.getElementById(`${type}StationLat`).value = item.lat;
+          document.getElementById(`${type}StationLng`).value = item.lon;
+          inputEl.value = stName;
+          const lbl = document.getElementById(`${type}StationSelectedLabel`);
+          lbl.textContent = `✓ 選択済: ${stName}`;
+          lbl.classList.remove('hidden');
+          ul.innerHTML = "";
+        };
+        ul.appendChild(li);
+      });
+    } else {
+      ul.innerHTML = `<li class="p-2 text-slate-400">駅が見つかりませんでした</li>`;
+    }
+  };
+
+  // 発車駅・到着駅の保存
+  window.saveStationRoute = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('stationSpotId').value;
+    const depLat = parseFloat(document.getElementById('depStationLat').value);
+    const depLng = parseFloat(document.getElementById('depStationLng').value);
+    const depName = document.getElementById('depStationName').value;
+
+    const arrLat = parseFloat(document.getElementById('arrStationLat').value);
+    const arrLng = parseFloat(document.getElementById('arrStationLng').value);
+    const arrName = document.getElementById('arrStationName').value;
+
+    if (!depLat || !arrLat) {
+      alert("発車駅と到着駅を検索してリストから選択してください。");
+      return;
+    }
+
+    await updateDoc(doc(db, "pins", id), {
+      transportToNext: 'train',
+      trainRoute: {
+        dep: { name: depName, lat: depLat, lng: depLng },
+        arr: { name: arrName, lat: arrLat, lng: arrLng }
+      }
+    });
+
+    closeStationModal();
   };
 
   window.toggleSearch = function() { document.getElementById('searchContainer').classList.toggle('hidden'); };
@@ -606,16 +953,14 @@
     return { badge: 'bg-slate-100 text-slate-600 border-slate-200', card: 'bg-slate-50 border-slate-200' };
   }
 
+  // マップ上のピン描画（写真があっても選択した絵文字アイコンを維持）
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
       let ext = spot.status === 'done' ? "pin-done" : (spot.status === 'cancel' ? "pin-cancel" : "");
-      let iconHtml = `<div class="custom-pin ${ext}" style="background-color:#38bdf8; width:32px; height:32px; font-size:16px;">${spot.iconEmoji || '📍'}</div>`;
-      if (spot.photo) {
-        iconHtml = `<div class="custom-pin overflow-hidden ${ext}" style="width:36px; height:36px;"><img src="${spot.photo}" class="w-full h-full object-cover"></div>`;
-      }
+      let iconHtml = `<div class="custom-pin ${ext}" style="background-color:#38bdf8; width:34px; height:34px; font-size:17px;">${spot.iconEmoji || '📍'}</div>`;
 
-      let marker = L.marker([spot.lat, spot.lng], { icon: L.divIcon({ html: iconHtml, className: '', iconSize: [36,36], iconAnchor:[18,36] }) }).addTo(window.map);
+      let marker = L.marker([spot.lat, spot.lng], { icon: L.divIcon({ html: iconHtml, className: '', iconSize: [34,34], iconAnchor:[17,34] }) }).addTo(window.map);
       
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
@@ -720,8 +1065,19 @@
 
         const modeButtons = modes.map(m => {
           const active = currentMode === m.key;
-          return `<button onclick="updateTransport('${spot.id}', '${active ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? 'bg-sky-500 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
+          return `<button onclick="updateTransport('${spot.id}', '${(active && m.key !== 'train') ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? (m.key === 'train' ? 'bg-purple-600 text-white shadow-sm' : 'bg-sky-500 text-white shadow-sm') : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
         }).join('');
+
+        // 電車ルート設定済みの場合は駅区間バッジと解除ボタンを表示
+        let trainInfoHtml = "";
+        if (currentMode === 'train' && spot.trainRoute && spot.trainRoute.dep && spot.trainRoute.arr) {
+          trainInfoHtml = `
+          <div class="flex items-center gap-1.5 text-[10px] text-purple-700 font-bold">
+            <span class="bg-purple-100 px-2 py-0.5 rounded-full">🚉 ${spot.trainRoute.dep.name} ➔ ${spot.trainRoute.arr.name}</span>
+            <button onclick="openStationModal('${spot.id}')" class="underline text-purple-600">駅変更</button>
+            <button onclick="updateTransport('${spot.id}', '')" class="text-slate-400 hover:text-rose-500">解除</button>
+          </div>`;
+        }
 
         connectorHtml = `
         <div class="relative py-2.5 pl-6 flex flex-col gap-1.5">
@@ -731,6 +1087,7 @@
               <i data-lucide="loader" class="w-3 h-3 animate-spin"></i> ルート計算中 (直線 ${straightDist})
             </span>
           </div>
+          ${trainInfoHtml}
           <div class="flex flex-wrap gap-1">
             ${modeButtons}
           </div>
