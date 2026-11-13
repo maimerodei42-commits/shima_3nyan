@@ -245,7 +245,7 @@
   <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative border border-purple-100">
     <button type="button" onclick="closeStationModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
     <h3 class="text-base font-bold text-purple-700 mb-1 flex items-center gap-1.5">🚃 発車駅・到着駅を選択</h3>
-    <p class="text-[11px] text-slate-500 mb-3">駅を選択すると路線図に沿ったルートと矢印を地図に引きます。</p>
+    <p class="text-[11px] text-slate-500 mb-3">駅を選択すると線路に沿ったルート線と矢印のみを地図に引きます。</p>
     
     <form onsubmit="saveStationRoute(event)" class="space-y-3 text-xs">
       <input type="hidden" id="stationSpotId">
@@ -492,8 +492,8 @@
     const midLng = (lng1 + lng2) / 2;
     const dy = lat2 - lat1;
     const dx = Math.cos(Math.PI / 180 * lat1) * (lng2 - lng1);
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI); // 東向きを0度とした角度
-    const cssRotate = -angle; // CSS rotateは時計回りなので反転
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    const cssRotate = -angle;
 
     const arrowHtml = `<div style="transform: rotate(${cssRotate}deg); color: ${color}; font-size: 16px; font-weight: 900; text-shadow: 0 0 3px white, 0 0 3px white; line-height: 1;">➤</div>`;
     const arrowMarker = L.marker([midLat, midLng], {
@@ -519,7 +519,6 @@
     if (window.railCache[cacheKey]) return window.railCache[cacheKey];
 
     const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
-    // 長距離（120km超）はAPI負荷を避けて駅間直結
     if (dist > 120000) {
       const fallback = { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
       window.railCache[cacheKey] = fallback;
@@ -540,7 +539,6 @@
       });
       const data = await res.json();
       if (data.elements && data.elements.length > 0) {
-        // 線路ノード群をグラフ化して発車駅最寄りノードから到着駅最寄りノードへの最短経路を探索
         const adj = new Map();
         const nodeCoords = new Map();
         const keyOf = (lat, lon) => `${lat.toFixed(5)},${lon.toFixed(5)}`;
@@ -572,7 +570,6 @@
         });
 
         if (startKey && endKey && minStartD < 2500 && minEndD < 2500) {
-          // ダイクストラ法で線路上の経路を探索
           const distMap = new Map();
           const prevMap = new Map();
           const visited = new Set();
@@ -693,44 +690,35 @@
       const mode = spotA.transportToNext || '';
       const badgeEl = document.getElementById(`dist-badge-${spotA.id}`);
 
-      // 電車・バス選択時で、発車駅・到着駅が設定されている場合
+      // 電車の設定（発車駅・到着駅）が完了している場合は、直線と道路の線を消して線路の線のみ描画
       if (mode === 'train' && spotA.trainRoute && spotA.trainRoute.dep && spotA.trainRoute.arr) {
         const dep = spotA.trainRoute.dep;
         const arr = spotA.trainRoute.arr;
 
-        // 1. 出発スポット → 発車駅（徒歩アクセス線）
-        const walkToDep = await fetchRouteSegment(spotA, dep);
-        const line1 = L.polyline(walkToDep.coords, { color: '#94a3b8', weight: 4, dashArray: '5, 5', opacity: 0.8 }).addTo(window.map);
-        window.routeLayers.push(line1);
-
-        // 2. 発車駅 → 到着駅（鉄道路線ルート + 矢印）
+        // 発車駅 → 到着駅（線路の線のみ）
         const railSeg = await fetchRailwayGeometry(dep, arr);
         const lineRail = L.polyline(railSeg.coords, {
           color: '#8b5cf6',
           weight: 5,
           opacity: 0.9,
-          dashArray: railSeg.isRail ? null : '8, 6'
+          lineJoin: 'round'
         }).addTo(window.map);
         window.routeLayers.push(lineRail);
 
-        // 路線の中間地点に進行方向の矢印（➤）を描画
-        const midIdx = Math.floor(railSeg.coords.length / 2);
-        const p1 = railSeg.coords[Math.max(0, midIdx - 1)];
-        const p2 = railSeg.coords[Math.min(railSeg.coords.length - 1, midIdx)];
-        addDirectionArrow(p1[0], p1[1], p2[0], p2[1], '#7c3aed');
+        // 線路の中間地点に進行方向の矢印（➤）を描画
+        if (railSeg.coords.length >= 2) {
+          const midIdx = Math.floor(railSeg.coords.length / 2);
+          const p1 = railSeg.coords[Math.max(0, midIdx - 1)];
+          const p2 = railSeg.coords[Math.min(railSeg.coords.length - 1, midIdx)];
+          addDirectionArrow(p1[0], p1[1], p2[0], p2[1], '#7c3aed');
+        }
 
         // 駅ラベルを表示
         addStationPin(dep.lat, dep.lng, dep.name);
         addStationPin(arr.lat, arr.lng, arr.name);
 
-        // 3. 到着駅 → 目的スポット（徒歩アクセス線）
-        const walkFromArr = await fetchRouteSegment(arr, spotB);
-        const line3 = L.polyline(walkFromArr.coords, { color: '#94a3b8', weight: 4, dashArray: '5, 5', opacity: 0.8 }).addTo(window.map);
-        window.routeLayers.push(line3);
-
         if (badgeEl) {
-          const totalDist = walkToDep.distance + railSeg.distance + walkFromArr.distance;
-          badgeEl.innerHTML = `🚃 ${dep.name} → ${arr.name} (約 ${formatDistance(totalDist)})`;
+          badgeEl.innerHTML = `🚃 ${dep.name} → ${arr.name} (線路 約 ${formatDistance(railSeg.distance)})`;
         }
         continue;
       }
@@ -1068,7 +1056,6 @@
           return `<button onclick="updateTransport('${spot.id}', '${(active && m.key !== 'train') ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? (m.key === 'train' ? 'bg-purple-600 text-white shadow-sm' : 'bg-sky-500 text-white shadow-sm') : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
         }).join('');
 
-        // 電車ルート設定済みの場合は駅区間バッジと解除ボタンを表示
         let trainInfoHtml = "";
         if (currentMode === 'train' && spot.trainRoute && spot.trainRoute.dep && spot.trainRoute.arr) {
           trainInfoHtml = `
