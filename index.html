@@ -30,19 +30,27 @@
     -webkit-tap-highlight-color: transparent;
   }
   
-  #map { position: absolute; top: 0; left: 0; right: 0; bottom: calc(56px + var(--sab)); width: 100%; z-index: 1; }
-  #ui-layer { position: absolute; top: 0; left: 0; right: 0; bottom: calc(56px + var(--sab)); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding-top: var(--sat); }
+  #map { position: absolute; top: 0; left: 0; right: 0; bottom: calc(58px + var(--sab)); width: 100%; z-index: 1; }
+  #ui-layer { position: absolute; top: 0; left: 0; right: 0; bottom: calc(58px + var(--sab)); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding-top: var(--sat); }
   .pointer-events-auto { pointer-events: auto; }
   .pale-map-tiles { filter: brightness(1.02) contrast(0.98); }
 
-  #timeline-panel { position: fixed; top: 0; left: 0; right: 0; bottom: calc(56px + var(--sab)); z-index: 1500; background-color: #f8fafc; padding-top: var(--sat); transition: opacity 0.2s ease, visibility 0.2s ease; }
-  .timeline-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-  .timeline-visible { opacity: 1; visibility: visible; pointer-events: auto; }
+  .sub-panel {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    bottom: calc(58px + var(--sab));
+    z-index: 1500;
+    background-color: #f8fafc;
+    padding-top: var(--sat);
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+  .panel-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .panel-visible { opacity: 1; visibility: visible; pointer-events: auto; }
   #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; padding-bottom: var(--sab); }
 
   /* ピンのスタイル */
-  .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.25); border: 2px solid white; }
-  .pin-done { background-color: #f472b6 !important; border-color: #fbcfe8 !important; opacity: 0.9; } 
+  .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.28); border: 2.5px solid white; }
+  .pin-done { background-color: #f472b6 !important; border-color: #fbcfe8 !important; opacity: 0.92; } 
   .pin-cancel { background-color: #cbd5e1 !important; opacity: 0.4; text-decoration: line-through; }
 
   /* 現在地マーカーのパルスアニメーション */
@@ -187,13 +195,12 @@
       </div>
     </header>
 
-    <!-- グルメカウンター -->
-    <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex gap-3 overflow-x-auto hide-scrollbar border border-orange-100">
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🥞</span><span class="text-xs font-bold text-slate-600">お好み焼き</span><span id="cnt-okonomi" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🦪</span><span class="text-xs font-bold text-slate-600">牡蠣</span><span id="cnt-oyster" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍁</span><span class="text-xs font-bold text-slate-600">もみじ饅頭</span><span id="cnt-momiji" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍜</span><span class="text-xs font-bold text-slate-600">尾道ラーメン</span><span id="cnt-ramen" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
-      <div class="flex items-center gap-1 shrink-0"><span class="text-lg">🍋</span><span class="text-xs font-bold text-slate-600">レモン</span><span id="cnt-lemon" class="font-bold text-orange-500 ml-1 text-base">0</span></div>
+    <!-- グルメカウンター（項目追加・編集可能） -->
+    <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex items-center gap-2 border border-orange-100">
+      <div id="foodCounterItems" class="flex gap-3 overflow-x-auto hide-scrollbar flex-1 items-center"></div>
+      <button onclick="openFoodManageModal()" title="食べ物リストの追加・編集" class="shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 rounded-lg px-2 py-1 text-[10px] font-extrabold flex items-center gap-1 active:scale-95 transition">
+        <i data-lucide="settings-2" class="w-3.5 h-3.5"></i><span>編集</span>
+      </button>
     </div>
 
     <!-- 検索ボックス -->
@@ -206,11 +213,17 @@
     </div>
   </div>
 
-  <!-- マップ左下：表示中のルート日付バッジ & 右下：操作ボタン -->
+  <!-- マップ左下：凡例 & 表示中ルート日付バッジ / 右下：操作ボタン -->
   <div class="p-4 flex items-end justify-between pointer-events-none pb-4 w-full box-border">
-    <div class="bg-white/95 backdrop-blur px-3 py-1.5 rounded-full shadow-md border border-sky-100 text-[11px] font-bold text-sky-700 pointer-events-auto flex items-center gap-1.5">
-      <span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span>
-      <span id="mapRouteLabel">11/30 のルート表示中</span>
+    <div class="flex flex-col gap-1.5 pointer-events-auto">
+      <div class="bg-white/95 backdrop-blur px-2.5 py-1 rounded-full shadow-sm border border-slate-100 text-[10px] font-bold text-slate-600 flex items-center gap-2">
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span>みちのり</span>
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>検討リスト</span>
+      </div>
+      <div class="bg-white/95 backdrop-blur px-3 py-1.5 rounded-full shadow-md border border-sky-100 text-[11px] font-bold text-sky-700 flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span>
+        <span id="mapRouteLabel">11/30 のルート表示中</span>
+      </div>
     </div>
     <div class="flex flex-col items-end gap-3 pointer-events-auto">
       <button onclick="resetToDefaultBounds()" class="bg-white/95 p-3 rounded-full shadow-lg text-slate-600"><i data-lucide="home" class="w-5 h-5"></i></button>
@@ -219,13 +232,38 @@
   </div>
 </div>
 
-<!-- タイムラインパネル -->
-<div id="timeline-panel" class="flex flex-col timeline-hidden border-t border-slate-200">
+<!-- 左タブ：検討リストパネル（未定・候補スポットの取捨選択用） -->
+<div id="consider-panel" class="sub-panel flex flex-col panel-hidden border-t border-rose-200">
+  <div class="p-4 bg-gradient-to-r from-rose-50 via-amber-50 to-orange-50 shadow-sm z-10 shrink-0 border-b border-rose-100">
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <h2 class="font-extrabold text-rose-600 text-base m-0 flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-5 h-5 text-rose-500"></i>💡 検討リスト（候補スポット）
+        </h2>
+        <p class="text-[10px] text-slate-500 m-0">「検討リストへ！」のスポット（地図では赤色ピン🔴）を3人で取捨選択</p>
+      </div>
+      <button onclick="openAddConsiderModal()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1 active:scale-95 transition shrink-0">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>候補追加</span>
+      </button>
+    </div>
+    <!-- 絞り込みフィルター -->
+    <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pt-1" id="considerFilterContainer">
+      <button onclick="setConsiderFilter('all')" class="consider-filter-btn bg-rose-500 text-white rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="all">すべて</button>
+      <button onclick="setConsiderFilter('gourmet')" class="consider-filter-btn bg-white text-slate-600 border border-rose-200 rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="gourmet">🍽️ ご飯・カフェ</button>
+      <button onclick="setConsiderFilter('sightseeing')" class="consider-filter-btn bg-white text-slate-600 border border-rose-200 rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="sightseeing">🚴 観光・遊び</button>
+      <button onclick="setConsiderFilter('other')" class="consider-filter-btn bg-white text-slate-600 border border-rose-200 rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="other">🏨 宿・その他</button>
+    </div>
+  </div>
+  <div id="considerTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-12 scroll-smooth"></div>
+</div>
+
+<!-- 右タブ：みちのりタイムラインパネル（予約済み〜★1のみ） -->
+<div id="timeline-panel" class="sub-panel flex flex-col panel-hidden border-t border-slate-200">
   <div class="p-4 bg-white shadow-sm z-10 shrink-0">
     <div class="flex items-center justify-between mb-3">
       <div>
         <h2 class="font-bold text-sky-700 text-base m-0 flex items-center gap-1.5"><i data-lucide="route" class="w-5 h-5"></i>📍 旅のみちのり順</h2>
-        <p class="text-[10px] text-slate-400 m-0">11/30 〜 12/03 の予定タイムライン（同時間は①②で順番変更）</p>
+        <p class="text-[10px] text-slate-400 m-0">予約済み〜★1の確定・本命ルート（同時間は①②で順番変更）</p>
       </div>
     </div>
     <div class="flex gap-2 overflow-x-auto hide-scrollbar" id="tabContainer">
@@ -238,9 +276,23 @@
   <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-2 pb-12 scroll-smooth"></div>
 </div>
 
-<nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.05)] border-t border-sky-100 flex pointer-events-auto">
-  <button onclick="switchMainTab('map')" id="navBtnMap" class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-sky-600 font-bold text-xs"><i data-lucide="map" class="w-5 h-5"></i>マップ</button>
-  <button onclick="switchMainTab('route')" id="navBtnRoute" class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-slate-400 font-bold text-xs"><i data-lucide="route" class="w-5 h-5"></i>みちのり</button>
+<!-- 下部3タブナビゲーション：左「検討リスト」・中央「マップ」・右「みちのり」 -->
+<nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.06)] border-t border-sky-100 flex pointer-events-auto">
+  <button onclick="switchMainTab('consider')" id="navBtnConsider" class="flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px] relative">
+    <div class="relative">
+      <i data-lucide="sparkles" class="w-5 h-5"></i>
+      <span id="considerCountBadge" class="hidden absolute -top-1.5 -right-3 bg-rose-500 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full">0</span>
+    </div>
+    <span>検討リスト</span>
+  </button>
+  <button onclick="switchMainTab('map')" id="navBtnMap" class="flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-sky-600 font-bold text-[11px]">
+    <i data-lucide="map" class="w-5 h-5"></i>
+    <span>マップ</span>
+  </button>
+  <button onclick="switchMainTab('route')" id="navBtnRoute" class="flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]">
+    <i data-lucide="route" class="w-5 h-5"></i>
+    <span>みちのり</span>
+  </button>
 </nav>
 
 <!-- 追加/編集 モーダル -->
@@ -275,10 +327,22 @@
         </div>
       </div>
 
+      <div>
+        <label class="block font-bold text-slate-600 mb-1">行きたい度（優先度）</label>
+        <select id="spotPriority" onchange="onPriorityChange()" class="w-full border rounded-xl p-2.5 bg-white font-bold">
+          <option value="consider">💡 検討リストへ！（赤ピン・未定候補）</option>
+          <option value="reserved">✅ 予約済み（みちのりへ）</option>
+          <option value="3">★★★ 絶対行きたい（みちのりへ）</option>
+          <option value="2">★★☆ 行けたら行く（みちのりへ）</option>
+          <option value="1">★☆☆ 時間あれば（みちのりへ）</option>
+        </select>
+        <p id="priorityHelpText" class="text-[10px] text-rose-500 font-bold mt-1 hidden">※ 赤ピンで地図に表示され、左の「検討リスト」に入ります</p>
+      </div>
+
       <!-- 日付・時間・同時間内の順番（①②③） -->
       <div class="grid grid-cols-3 gap-2">
         <div>
-          <label class="block font-bold text-slate-600 mb-1">日付</label>
+          <label class="block font-bold text-slate-600 mb-1">日付（目安）</label>
           <select id="spotDate" onchange="suggestNextOrder()" required class="w-full border rounded-xl p-2.5 bg-white">
             <option value="11/30">11/30 (月)</option>
             <option value="12/01">12/01 (火)</option>
@@ -287,7 +351,7 @@
           </select>
         </div>
         <div>
-          <label class="block font-bold text-slate-600 mb-1">時間</label>
+          <label class="block font-bold text-slate-600 mb-1">時間（目安）</label>
           <select id="spotTime" onchange="suggestNextOrder()" required class="w-full border rounded-xl p-2.5 bg-white"></select>
         </div>
         <div>
@@ -325,16 +389,6 @@
       </div>
 
       <div>
-        <label class="block font-bold text-slate-600 mb-1">優先度</label>
-        <select id="spotPriority" class="w-full border rounded-xl p-2.5 bg-white">
-          <option value="reserved">✅ 予約済み</option>
-          <option value="3">★★★ (絶対行きたい)</option>
-          <option value="2">★★☆ (行けたら行く)</option>
-          <option value="1">★☆☆ (時間あれば)</option>
-        </select>
-      </div>
-
-      <div>
         <label class="block font-bold text-slate-600 mb-1">メモ</label>
         <textarea id="spotComment" rows="2" placeholder="おすすめメニューやメモを残せます" class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-sky-400"></textarea>
       </div>
@@ -344,6 +398,79 @@
         <button type="submit" id="btnSaveSpot" class="w-2/3 py-2.5 rounded-xl bg-sky-500 text-white font-bold">保存する</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- 検討リストから「みちのり」へ採用モーダル -->
+<div id="promoteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-xl max-w-xs w-full p-5 relative border border-sky-100">
+    <button type="button" onclick="closePromoteModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <h3 class="text-base font-extrabold text-sky-700 mb-1 flex items-center gap-1.5">✨ みちのりへ採用！</h3>
+    <p id="promoteSpotTitle" class="text-xs font-bold text-slate-700 bg-sky-50 p-2 rounded-xl mb-3"></p>
+
+    <form onsubmit="submitPromoteSpot(event)" class="space-y-3 text-xs">
+      <input type="hidden" id="promoteSpotId">
+
+      <div>
+        <label class="block font-bold text-slate-600 mb-1">行きたい度（優先度）</label>
+        <select id="promotePriority" class="w-full border rounded-xl p-2.5 bg-white font-bold">
+          <option value="reserved">✅ 予約済み</option>
+          <option value="3" selected>★★★ (絶対行きたい)</option>
+          <option value="2">★★☆ (行けたら行く)</option>
+          <option value="1">★☆☆ (時間あれば)</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">日付</label>
+          <select id="promoteDate" class="w-full border rounded-xl p-2.5 bg-white">
+            <option value="11/30">11/30 (月)</option>
+            <option value="12/01">12/01 (火)</option>
+            <option value="12/02">12/02 (水)</option>
+            <option value="12/03">12/03 (木)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">時間</label>
+          <select id="promoteTime" class="w-full border rounded-xl p-2.5 bg-white"></select>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closePromoteModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">戻る</button>
+        <button type="submit" class="w-2/3 py-2.5 rounded-xl bg-sky-500 text-white font-bold shadow-sm">みちのりに決定！</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- グルメカウンター項目 追加・編集モーダル -->
+<div id="foodManageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative max-h-[85vh] overflow-y-auto border border-orange-100">
+    <button type="button" onclick="closeFoodManageModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <h3 class="text-base font-extrabold text-orange-600 mb-1 flex items-center gap-1.5">🍽️ グルメカウンター編集</h3>
+    <p class="text-[11px] text-slate-500 mb-3">新しい食べ物の追加や、絵文字・名前の編集ができます（みんなと同期されます）。</p>
+
+    <!-- 新規追加フォーム -->
+    <form onsubmit="addNewFoodCategory(event)" class="bg-orange-50/80 p-3 rounded-2xl border border-orange-200 mb-4 space-y-2 text-xs">
+      <div class="font-bold text-orange-800">＋ 新しい食べ物を追加</div>
+      <div class="flex gap-2">
+        <input type="text" id="newFoodEmoji" placeholder="絵文字 (例: 🍨)" maxlength="4" required class="w-16 border border-orange-200 rounded-xl p-2 text-center text-base bg-white outline-none focus:ring-2 focus:ring-orange-400">
+        <input type="text" id="newFoodName" placeholder="食べ物名 (例: ジェラート)" required class="flex-1 border border-orange-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-orange-400">
+        <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 rounded-xl shrink-0">追加</button>
+      </div>
+    </form>
+
+    <!-- 既存リスト一覧・編集 -->
+    <div class="space-y-2 text-xs">
+      <div class="font-bold text-slate-600">現在のカウンター項目（タップして編集）</div>
+      <div id="foodManageList" class="space-y-2"></div>
+    </div>
+
+    <div class="pt-4">
+      <button type="button" onclick="closeFoodManageModal()" class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">完了して閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -406,14 +533,7 @@
       <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
         <label class="block font-bold text-orange-700 mb-2">🥞 食べたものを記録 (何個食べた？)</label>
         <div class="flex gap-2">
-          <select id="evalFoodType" class="flex-1 border border-orange-200 rounded-lg p-2 bg-white text-slate-700">
-            <option value="">-- 食べなかった --</option>
-            <option value="okonomi">🥞 お好み焼き</option>
-            <option value="oyster">🦪 牡蠣</option>
-            <option value="momiji">🍁 もみじ饅頭</option>
-            <option value="ramen">🍜 尾道ラーメン</option>
-            <option value="lemon">🍋 広島レモン</option>
-          </select>
+          <select id="evalFoodType" class="flex-1 border border-orange-200 rounded-lg p-2 bg-white text-slate-700"></select>
           <select id="evalFoodCount" class="w-20 border border-orange-200 rounded-lg p-2 bg-white text-center font-bold">
             <option value="1">1個</option>
             <option value="2">2個</option>
@@ -440,7 +560,6 @@
         <button type="submit" id="btnSubmitEval" class="w-1/2 py-2 rounded-xl bg-sky-500 text-white font-bold">記録する</button>
       </div>
 
-      <!-- 評価したこと自体を消すボタン（すでに評価済みの場合に表示） -->
       <div id="deleteMyEvalWrapper" class="pt-2 border-t border-slate-100 hidden">
         <button type="button" onclick="deleteMyEvaluationFromModal()" class="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold flex items-center justify-center gap-1 transition">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 評価したこと自体を取り消す（削除）
@@ -452,7 +571,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC7DjN_QqUtMRhQNjWLg6aam2KUqh0CeV0",
@@ -463,13 +582,25 @@
   const db = getFirestore(app);
   const pinsCollection = collection(db, "pins");
   const q = query(pinsCollection, orderBy("sortTime", "asc"));
+  const foodConfigDocRef = doc(db, "settings", "foodCategories");
 
+  const DEFAULT_FOOD_CATEGORIES = [
+    { key: 'okonomi', emoji: '🥞', name: 'お好み焼き', isDefault: true },
+    { key: 'oyster', emoji: '🦪', name: '牡蠣', isDefault: true },
+    { key: 'momiji', emoji: '🍁', name: 'もみじ饅頭', isDefault: true },
+    { key: 'ramen', emoji: '🍜', name: '尾道ラーメン', isDefault: true },
+    { key: 'lemon', emoji: '🍋', name: 'レモン', isDefault: true }
+  ];
+
+  window.foodCategories = [...DEFAULT_FOOD_CATEGORIES];
   window.currentUser = "";
   window.map = null;
   window.markers = [];
   window.routeLayers = [];
   window.spots = [];
   window.currentDayTab = "11/30";
+  window.currentMainTab = "map";
+  window.considerFilter = "all";
   window.isFirstLoad = true;
   window.currentPhotoBase64 = null;
   window.routeRenderToken = 0;
@@ -501,6 +632,11 @@
     return 1;
   }
 
+  // 検討リスト判定ヘルパー
+  function isConsiderSpot(spot) {
+    return spot.priority === 'consider';
+  }
+
   // localStorageを使った高速キャッシュ読み込み
   function loadCache(storageKey) {
     try {
@@ -525,8 +661,16 @@
   window.onload = function() {
     lucide.createIcons();
     const timeSelect = document.getElementById('spotTime');
-    for(let i=0; i<24; i++) timeSelect.appendChild(new Option(`${String(i).padStart(2,'0')}:00`, `${String(i).padStart(2,'0')}:00`));
+    const promoteTimeSelect = document.getElementById('promoteTime');
+    for(let i=0; i<24; i++) {
+      const t = `${String(i).padStart(2,'0')}:00`;
+      timeSelect.appendChild(new Option(t, t));
+      promoteTimeSelect.appendChild(new Option(t, t));
+    }
     
+    renderFoodCounterBar();
+    updateEvalFoodSelectOptions();
+
     setTimeout(() => { 
       document.getElementById('splashTitle').classList.add('hidden'); 
       document.getElementById('userSelectBox').classList.remove('hidden'); 
@@ -637,6 +781,56 @@
     startUserLocationTracking();
   };
 
+  // グルメカウンター計算＆描画
+  function recalculateAndRenderFoodCounters() {
+    const totals = {};
+    window.foodCategories.forEach(fc => { totals[fc.key] = 0; });
+
+    window.spots.forEach(data => {
+      if (data.status !== 'cancel') {
+        if (Array.isArray(data.evaluations)) {
+          data.evaluations.forEach(ev => {
+            if (ev.foodType && totals[ev.foodType] !== undefined) {
+              totals[ev.foodType] += (ev.foodCount || 1);
+            }
+          });
+        } else if (data.foodType && data.rating && totals[data.foodType] !== undefined) {
+          totals[data.foodType] += (data.foodCount || 1);
+        }
+      }
+    });
+
+    renderFoodCounterBar(totals);
+  }
+
+  function renderFoodCounterBar(totals = {}) {
+    const container = document.getElementById('foodCounterItems');
+    if (!container) return;
+    container.innerHTML = window.foodCategories.map(fc => {
+      const cnt = totals[fc.key] || 0;
+      return `
+      <div class="flex items-center gap-1 shrink-0">
+        <span class="text-lg">${fc.emoji}</span>
+        <span class="text-xs font-bold text-slate-600">${fc.name}</span>
+        <span class="font-bold text-orange-500 ml-0.5 text-base">${cnt}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function updateEvalFoodSelectOptions() {
+    const select = document.getElementById('evalFoodType');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = `<option value="">-- 食べなかった --</option>` +
+      window.foodCategories.map(fc => `<option value="${fc.key}">${fc.emoji} ${fc.name}</option>`).join('');
+    if (currentVal) select.value = currentVal;
+  }
+
+  function getFoodDisplay(type) {
+    const found = window.foodCategories.find(fc => fc.key === type);
+    return found ? `${found.emoji} ${found.name}` : '';
+  }
+
   function initMap() {
     window.map = L.map('map', { zoomControl: false, tap: false }).setView([34.25, 133.00], 10);
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { maxZoom: 18, className: 'pale-map-tiles' }).addTo(window.map);
@@ -644,35 +838,46 @@
 
     startUserLocationTracking();
 
+    // グルメ項目リストをFirestoreとリアルタイム同期
+    onSnapshot(foodConfigDocRef, (docSnap) => {
+      if (docSnap.exists() && Array.isArray(docSnap.data().items) && docSnap.data().items.length > 0) {
+        window.foodCategories = docSnap.data().items;
+      } else {
+        window.foodCategories = [...DEFAULT_FOOD_CATEGORIES];
+      }
+      recalculateAndRenderFoodCounters();
+      updateEvalFoodSelectOptions();
+      if (!document.getElementById('foodManageModal').classList.contains('hidden')) {
+        renderFoodManageList();
+      }
+    });
+
     onSnapshot(q, (snapshot) => {
       window.spots = [];
-      let foodTotals = { okonomi:0, oyster:0, momiji:0, ramen:0, lemon:0 };
       snapshot.forEach(d => {
         const data = d.data();
         window.spots.push({ id: d.id, ...data });
-        
-        if(data.status !== 'cancel') {
-          if(Array.isArray(data.evaluations)) {
-            data.evaluations.forEach(ev => {
-              if(ev.foodType && foodTotals[ev.foodType] !== undefined) {
-                foodTotals[ev.foodType] += (ev.foodCount || 1);
-              }
-            });
-          } else if(data.foodType && data.rating && foodTotals[data.foodType] !== undefined) {
-            foodTotals[data.foodType] += (data.foodCount || 1);
-          }
-        }
       });
 
       // クライアント側でも sortTime 順に厳密ソート
       window.spots.sort((a, b) => (a.sortTime || 0) - (b.sortTime || 0));
 
-      ['okonomi','oyster','momiji','ramen','lemon'].forEach(k => document.getElementById(`cnt-${k}`).innerText = foodTotals[k]);
+      recalculateAndRenderFoodCounters();
+
+      // 検討リスト件数バッジの更新
+      const considerCount = window.spots.filter(s => isConsiderSpot(s)).length;
+      const badgeEl = document.getElementById('considerCountBadge');
+      if (considerCount > 0) {
+        badgeEl.textContent = considerCount;
+        badgeEl.classList.remove('hidden');
+      } else {
+        badgeEl.classList.add('hidden');
+      }
       
       if (window.isFirstLoad) {
         const dates = ['11/30', '12/01', '12/02', '12/03'];
         for(let d of dates) {
-          const daySpots = window.spots.filter(s => s.date === d);
+          const daySpots = window.spots.filter(s => !isConsiderSpot(s) && s.date === d);
           if(daySpots.length > 0) {
             const allDone = daySpots.every(s => s.status === 'done' || s.status === 'cancel');
             if(!allDone) {
@@ -687,6 +892,7 @@
       updateTabButtonsUI();
       renderMarkers(); 
       renderRouteTimeline();
+      renderConsiderTimeline();
     });
   }
 
@@ -942,7 +1148,7 @@
     const currentToken = ++window.routeRenderToken;
     document.getElementById('mapRouteLabel').textContent = `${window.currentDayTab} のルート表示中`;
 
-    const activeSpots = daySpots.filter(s => s.status !== 'cancel');
+    const activeSpots = daySpots.filter(s => s.status !== 'cancel' && !isConsiderSpot(s));
 
     const segmentPromises = [];
     for (let i = 0; i < activeSpots.length - 1; i++) {
@@ -1049,12 +1255,11 @@
     const spotB = window.spots.find(s => s.id === spotIdB);
     if (!spotA || !spotB) return;
 
-    const sameGroup = window.spots.filter(s => s.date === spotA.date && s.time === spotA.time);
+    const sameGroup = window.spots.filter(s => !isConsiderSpot(s) && s.date === spotA.date && s.time === spotA.time);
     const idxA = sameGroup.findIndex(s => s.id === spotIdA);
     const idxB = sameGroup.findIndex(s => s.id === spotIdB);
     if (idxA === -1 || idxB === -1) return;
 
-    // グループ配列内の位置を入れ替えて1番から連番を振り直す
     const reordered = [...sameGroup];
     const temp = reordered[idxA];
     reordered[idxA] = reordered[idxB];
@@ -1207,14 +1412,38 @@
     } else { ul.innerHTML = "<li class='p-3 text-slate-400'>見つかりませんでした</li>"; }
   };
 
+  // 下部3タブ切り替え：「consider（検討リスト）」「map（マップ）」「route（みちのり）」
   window.switchMainTab = function(tab) {
-    if(tab === 'map') { 
-      document.getElementById('timeline-panel').classList.replace('timeline-visible','timeline-hidden'); 
-      document.getElementById('ui-layer').style.display='flex'; 
+    window.currentMainTab = tab;
+    const considerPanel = document.getElementById('consider-panel');
+    const timelinePanel = document.getElementById('timeline-panel');
+    const uiLayer = document.getElementById('ui-layer');
+
+    const btnConsider = document.getElementById('navBtnConsider');
+    const btnMap = document.getElementById('navBtnMap');
+    const btnRoute = document.getElementById('navBtnRoute');
+
+    btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
+    btnMap.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
+    btnRoute.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
+
+    if (tab === 'consider') {
+      considerPanel.classList.replace('panel-hidden', 'panel-visible');
+      timelinePanel.classList.replace('panel-visible', 'panel-hidden');
+      uiLayer.style.display = 'none';
+      btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-rose-500 font-extrabold text-[11px]";
+      renderConsiderTimeline();
+    } else if (tab === 'map') {
+      considerPanel.classList.replace('panel-visible', 'panel-hidden');
+      timelinePanel.classList.replace('panel-visible', 'panel-hidden');
+      uiLayer.style.display = 'flex';
+      btnMap.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-sky-600 font-extrabold text-[11px]";
       if (window.map) window.map.invalidateSize();
-    } else { 
-      document.getElementById('timeline-panel').classList.replace('timeline-hidden','timeline-visible'); 
-      document.getElementById('ui-layer').style.display='none'; 
+    } else {
+      considerPanel.classList.replace('panel-visible', 'panel-hidden');
+      timelinePanel.classList.replace('panel-hidden', 'panel-visible');
+      uiLayer.style.display = 'none';
+      btnRoute.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-sky-600 font-extrabold text-[11px]";
       updateTabButtonsUI();
       renderRouteTimeline(true);
     }
@@ -1243,20 +1472,28 @@
     return { badge: 'bg-slate-100 text-slate-600 border-slate-200', card: 'bg-slate-50 border-slate-200' };
   }
 
+  // ピン描画：「検討リストへ！」は赤色ピン（#ef4444）、みちのりは水色ピン（#38bdf8）
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
+      const isConsider = isConsiderSpot(spot);
       let ext = spot.status === 'done' ? "pin-done" : (spot.status === 'cancel' ? "pin-cancel" : "");
-      let iconHtml = `<div class="custom-pin ${ext}" style="background-color:#38bdf8; width:34px; height:34px; font-size:17px;">${spot.iconEmoji || '📍'}</div>`;
+      const pinBg = isConsider ? "#ef4444" : "#38bdf8";
+      let iconHtml = `<div class="custom-pin ${ext}" style="background-color:${pinBg}; width:34px; height:34px; font-size:17px;">${spot.iconEmoji || '📍'}</div>`;
 
-      let marker = L.marker([spot.lat, spot.lng], { icon: L.divIcon({ html: iconHtml, className: '', iconSize: [34,34], iconAnchor:[17,34] }) }).addTo(window.map);
+      let marker = L.marker([spot.lat, spot.lng], {
+        icon: L.divIcon({ html: iconHtml, className: '', iconSize: [34,34], iconAnchor:[17,34] }),
+        zIndexOffset: isConsider ? 200 : 100
+      }).addTo(window.map);
       
-      let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1));
+      let prioText = isConsider
+        ? '💡 検討リスト'
+        : (spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1)));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
       let photoHtml = spot.photo ? `<img src="${spot.photo}" class="w-full max-h-28 object-cover rounded-lg my-1 border border-slate-200">` : '';
 
-      const sameTimeList = window.spots.filter(s => s.date === spot.date && s.time === spot.time);
-      const orderLabel = sameTimeList.length > 1 ? ` ${toCircledNum(sameTimeList.findIndex(s => s.id === spot.id) + 1)}` : '';
+      const sameTimeList = window.spots.filter(s => !isConsiderSpot(s) && s.date === spot.date && s.time === spot.time);
+      const orderLabel = (!isConsider && sameTimeList.length > 1) ? ` ${toCircledNum(sameTimeList.findIndex(s => s.id === spot.id) + 1)}` : '';
 
       let evalListHtml = "";
       if(Array.isArray(spot.evaluations) && spot.evaluations.length > 0) {
@@ -1274,18 +1511,23 @@
         evalListHtml = `<div class="text-[10px] text-pink-600 font-bold bg-pink-50 p-1 rounded mt-1">⭐ 評価: ${'★'.repeat(spot.rating)}</div>`;
       }
 
+      const promoteBtnInPopup = isConsider
+        ? `<button onclick="openPromoteModal('${spot.id}')" class="w-full mt-1.5 py-1.5 bg-sky-500 text-white font-bold rounded-lg text-[11px] shadow-xs">✨ みちのりへ採用</button>`
+        : '';
+
       let popupContent = `
       <div class="p-1 font-sans text-xs space-y-1 max-w-[230px]">
         <div class="font-extrabold text-slate-800 text-sm border-b pb-1">${spot.iconEmoji || '📍'} ${spot.name}</div>
-        <div class="text-[10px] text-slate-500 flex justify-between">
-          <span>📅 ${spot.date} ${spot.time}${orderLabel}</span>
-          <span class="font-bold text-amber-500">${prioText}</span>
+        <div class="text-[10px] text-slate-500 flex justify-between items-center gap-1">
+          <span>${isConsider ? `目安: ${spot.date}` : `📅 ${spot.date} ${spot.time}${orderLabel}`}</span>
+          <span class="font-bold ${isConsider ? 'text-rose-500' : 'text-amber-500'}">${prioText}</span>
         </div>
-        <div class="text-[10px] text-sky-600 font-bold">📝 記録: ${spot.recordedBy || 'メンバー'}</div>
+        <div class="text-[10px] text-sky-600 font-bold">📝 提案: ${spot.recordedBy || 'メンバー'}</div>
         ${photoHtml}
         ${spot.comment ? `<div class="text-[10px] bg-slate-50 p-1.5 rounded text-slate-600">${spot.comment}</div>` : ''}
         ${urlsHtml}
         ${evalListHtml}
+        ${promoteBtnInPopup}
       </div>`;
 
       marker.bindPopup(popupContent);
@@ -1293,9 +1535,173 @@
     });
   }
 
+  // 検討リスト用フィルター切り替え
+  window.setConsiderFilter = function(filterKey) {
+    window.considerFilter = filterKey;
+    document.querySelectorAll('.consider-filter-btn').forEach(btn => {
+      if (btn.dataset.filter === filterKey) {
+        btn.className = "consider-filter-btn bg-rose-500 text-white rounded-full px-3 py-1 text-[11px] font-bold shrink-0";
+      } else {
+        btn.className = "consider-filter-btn bg-white text-slate-600 border border-rose-200 rounded-full px-3 py-1 text-[11px] font-bold shrink-0";
+      }
+    });
+    renderConsiderTimeline();
+  };
+
+  // 左タブ「検討リスト」タイムライン描画
+  function renderConsiderTimeline() {
+    const list = document.getElementById('considerTimelineList');
+    if (!list) return;
+
+    let candidates = window.spots.filter(s => isConsiderSpot(s));
+    if (window.considerFilter !== 'all') {
+      candidates = candidates.filter(s => {
+        const g = s.genre || 'other';
+        if (window.considerFilter === 'other') return g === 'other' || g === 'hotel';
+        return g === window.considerFilter;
+      });
+    }
+
+    if (candidates.length === 0) {
+      list.innerHTML = `
+      <div class="text-center py-14 space-y-2">
+        <div class="text-3xl">💡</div>
+        <div class="text-xs font-bold text-slate-500">検討リストに候補がありません</div>
+        <p class="text-[11px] text-slate-400">気になるご飯屋さんやスポットを<br>「💡 検討リストへ！」で追加して相談しよう</p>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = candidates.map(spot => {
+      const isMySpot = spot.recordedBy === window.currentUser;
+      const likes = Array.isArray(spot.likes) ? spot.likes : [];
+      const iLiked = likes.includes(window.currentUser);
+      const urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-600 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
+      const photoHtml = spot.photo ? `<img src="${spot.photo}" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs">` : '';
+
+      const likesBadges = likes.length > 0
+        ? likes.map(u => `<span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">👍 ${u}</span>`).join(' ')
+        : '';
+
+      return `
+      <div class="p-3.5 bg-white rounded-2xl shadow-sm border-2 border-rose-100 space-y-2.5">
+        <div class="flex justify-between items-center text-xs gap-1">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-extrabold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full text-[10px]">🔴 候補 (${spot.date}目安)</span>
+            <span class="text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full">📝 ${spot.recordedBy || 'メンバー'}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="focusSpotOnMap('${spot.id}')" title="地図で見る" class="text-sky-600 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-0.5">
+              <i data-lucide="map-pin" class="w-3 h-3"></i>地図
+            </button>
+            ${isMySpot ? `<button onclick="deleteSpot('${spot.id}')" title="候補を削除" class="text-rose-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-extrabold text-sm text-slate-800">${spot.iconEmoji || '📍'} ${spot.name}</h3>
+          ${photoHtml}
+          ${spot.comment ? `<p class="text-xs text-slate-600 mt-1.5 bg-rose-50/50 p-2 rounded-xl border border-rose-100/70">${spot.comment}</p>` : ''}
+          <div class="flex flex-col gap-1 mt-1 text-[10px]">${urlsHtml}</div>
+        </div>
+
+        ${likesBadges ? `<div class="flex flex-wrap gap-1 pt-0.5">${likesBadges}</div>` : ''}
+
+        <div class="pt-2 flex justify-between items-center text-xs border-t border-slate-100 gap-1.5">
+          <div class="flex items-center gap-2">
+            <button onclick="openEditModal('${spot.id}')" class="text-slate-400 hover:text-sky-500 font-bold flex items-center gap-1">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>編集
+            </button>
+            <button onclick="toggleLikeSpot('${spot.id}')" class="px-2.5 py-1.5 rounded-xl font-bold border transition ${iLiked ? 'bg-amber-400 text-white border-amber-400 shadow-xs' : 'bg-amber-50 text-amber-700 border-amber-200'}">
+              👍 行きたい！ (${likes.length})
+            </button>
+          </div>
+          <button onclick="openPromoteModal('${spot.id}')" class="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold shadow-xs flex items-center gap-1 active:scale-95 transition">
+            <span>✨ みちのりへ採用</span>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    lucide.createIcons();
+  }
+
+  window.toggleLikeSpot = async function(spotId) {
+    const spot = window.spots.find(s => s.id === spotId);
+    if (!spot) return;
+    const user = window.currentUser || 'メンバー';
+    const likes = Array.isArray(spot.likes) ? [...spot.likes] : [];
+    const idx = likes.indexOf(user);
+    if (idx !== -1) {
+      likes.splice(idx, 1);
+    } else {
+      likes.push(user);
+    }
+    await updateDoc(doc(db, "pins", spotId), { likes });
+  };
+
+  window.focusSpotOnMap = function(spotId) {
+    const spot = window.spots.find(s => s.id === spotId);
+    if (!spot || !window.map) return;
+    switchMainTab('map');
+    window.map.flyTo([spot.lat, spot.lng], 15);
+    const idx = window.spots.findIndex(s => s.id === spotId);
+    if (idx !== -1 && window.markers[idx]) {
+      setTimeout(() => window.markers[idx].openPopup(), 350);
+    }
+  };
+
+  // 検討リストから「みちのり」へ採用するモーダル
+  window.openPromoteModal = function(spotId) {
+    const spot = window.spots.find(s => s.id === spotId);
+    if (!spot) return;
+    document.getElementById('promoteSpotId').value = spot.id;
+    document.getElementById('promoteSpotTitle').textContent = `${spot.iconEmoji || '📍'} ${spot.name}`;
+    document.getElementById('promoteDate').value = spot.date || window.currentDayTab;
+    document.getElementById('promoteTime').value = spot.time || '12:00';
+    document.getElementById('promotePriority').value = '3';
+    document.getElementById('promoteModal').classList.remove('hidden');
+    lucide.createIcons();
+  };
+
+  window.closePromoteModal = () => document.getElementById('promoteModal').classList.add('hidden');
+
+  window.submitPromoteSpot = async function(e) {
+    e.preventDefault();
+    const spotId = document.getElementById('promoteSpotId').value;
+    const newDate = document.getElementById('promoteDate').value;
+    const newTime = document.getElementById('promoteTime').value;
+    const newPriority = document.getElementById('promotePriority').value;
+
+    const sameCount = window.spots.filter(s => !isConsiderSpot(s) && s.date === newDate && s.time === newTime && s.id !== spotId).length;
+    const nextOrder = sameCount + 1;
+
+    await updateDoc(doc(db, "pins", spotId), {
+      priority: newPriority,
+      date: newDate,
+      time: newTime,
+      orderInTime: nextOrder,
+      sortTime: buildSortTime(newDate, newTime, nextOrder)
+    });
+
+    closePromoteModal();
+    window.currentDayTab = newDate;
+    switchMainTab('route');
+  };
+
+  // 検討リストへ戻す（取り下げ）
+  window.demoteToConsider = async function(spotId) {
+    if (!confirm("このスポットを「検討リスト（赤ピン）」に戻しますか？")) return;
+    await updateDoc(doc(db, "pins", spotId), {
+      priority: 'consider',
+      transportToNext: ''
+    });
+  };
+
+  // 右タブ「みちのり」タイムライン描画（予約済み〜★1のみ）
   function renderRouteTimeline(autoScroll = false) {
     const list = document.getElementById('routeTimelineList');
-    const daySpots = window.spots.filter(s => s.date === window.currentDayTab);
+    const daySpots = window.spots.filter(s => !isConsiderSpot(s) && s.date === window.currentDayTab);
     
     let firstUnfinishedIndex = -1;
 
@@ -1308,7 +1714,6 @@
         firstUnfinishedIndex = index;
       }
 
-      // 同じ日付・同じ時間の予定グループと位置を判定
       const sameTimeGroup = daySpots.filter(s => s.time === spot.time);
       const posInSameTime = sameTimeGroup.findIndex(s => s.id === spot.id);
       const hasSameTimeSiblings = sameTimeGroup.length > 1;
@@ -1339,7 +1744,8 @@
           ${spot.evaluations.map((ev, evIdx) => {
             const isMine = ev.user === window.currentUser;
             const st = getUserStyle(ev.user);
-            const foodBadge = ev.foodType ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">🍽️ ${getFoodName(ev.foodType)} ×${ev.foodCount}</span>` : '';
+            const foodDisp = getFoodDisplay(ev.foodType);
+            const foodBadge = foodDisp ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">${foodDisp} ×${ev.foodCount}</span>` : '';
             return `
             <div class="p-2.5 rounded-xl border ${st.card} flex justify-between items-start gap-2">
               <div class="space-y-1 flex-1">
@@ -1426,13 +1832,18 @@
             <div class="flex flex-col gap-1 mt-1 text-[10px]">${urlsHtml}</div>
           </div>
           ${evalsHtml}
-          <div class="pt-2 flex justify-between items-center text-xs border-t border-slate-100">
-            <button onclick="openEditModal('${spot.id}')" class="text-slate-400 hover:text-sky-500 font-bold flex items-center gap-1">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>編集
-            </button>
+          <div class="pt-2 flex justify-between items-center text-xs border-t border-slate-100 gap-1">
+            <div class="flex items-center gap-2">
+              <button onclick="openEditModal('${spot.id}')" class="text-slate-400 hover:text-sky-500 font-bold flex items-center gap-1">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>編集
+              </button>
+              <button onclick="demoteToConsider('${spot.id}')" class="text-[10px] text-rose-500 hover:bg-rose-50 px-1.5 py-0.5 rounded font-bold">
+                💡 検討へ戻す
+              </button>
+            </div>
             <div class="flex gap-1.5">
               <button onclick="openEvalModal('${spot.id}')" class="px-2.5 py-1.5 rounded-xl bg-pink-50 text-pink-600 font-bold border border-pink-100">
-                ${hasMyEval ? '✏️ 自分の評価を更新・削除' : '⭐ 評価・グルメ記録'}
+                ${hasMyEval ? '✏️ 評価更新' : '⭐ 評価・記録'}
               </button>
               <button onclick="updateStatus('${spot.id}', 'done')" class="px-3 py-1.5 rounded-xl ${isDone?'bg-pink-400 text-white':'bg-slate-100 text-slate-600'} font-bold">✓ 行った</button>
             </div>
@@ -1440,7 +1851,7 @@
         </div>
         ${connectorHtml}
       </div>`;
-    }).join('') || '<div class="text-center py-10 text-xs text-slate-400">予定がありません</div>';
+    }).join('') || '<div class="text-center py-10 text-xs text-slate-400">この日の予定がありません<br><span class="text-[10px]">「💡 検討リスト」から候補を採用するか新規追加してください</span></div>';
 
     lucide.createIcons();
     drawMapRoutesAndUpdateDistances(daySpots);
@@ -1453,10 +1864,69 @@
     }
   }
 
-  function getFoodName(type) {
-    const map = { okonomi: 'お好み焼き', oyster: '牡蠣', momiji: 'もみじ饅頭', ramen: '尾道ラーメン', lemon: 'レモン' };
-    return map[type] || '';
+  // グルメ項目管理モーダル関連
+  window.openFoodManageModal = function() {
+    renderFoodManageList();
+    document.getElementById('foodManageModal').classList.remove('hidden');
+    lucide.createIcons();
+  };
+
+  window.closeFoodManageModal = () => document.getElementById('foodManageModal').classList.add('hidden');
+
+  function renderFoodManageList() {
+    const listEl = document.getElementById('foodManageList');
+    if (!listEl) return;
+    listEl.innerHTML = window.foodCategories.map((fc, idx) => `
+      <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-slate-200">
+        <input type="text" id="editFoodEmoji-${idx}" value="${fc.emoji}" maxlength="4" class="w-11 border border-slate-200 rounded-lg p-1.5 text-center text-base bg-white font-bold">
+        <input type="text" id="editFoodName-${idx}" value="${fc.name}" class="flex-1 border border-slate-200 rounded-lg p-1.5 bg-white font-bold text-slate-700">
+        <button type="button" onclick="saveEditedFoodCategory(${idx})" class="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1.5 rounded-lg font-bold text-[10px] shrink-0">保存</button>
+        ${!fc.isDefault ? `<button type="button" onclick="deleteFoodCategory(${idx})" class="bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-200 p-1.5 rounded-lg shrink-0" title="削除"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+      </div>
+    `).join('');
+    lucide.createIcons();
   }
+
+  window.addNewFoodCategory = async function(e) {
+    e.preventDefault();
+    const emoji = document.getElementById('newFoodEmoji').value.trim() || '🍽️';
+    const name = document.getElementById('newFoodName').value.trim();
+    if (!name) return;
+
+    const newKey = 'food_' + Date.now();
+    const updated = [...window.foodCategories, { key: newKey, emoji, name, isDefault: false }];
+    await setDoc(foodConfigDocRef, { items: updated });
+
+    document.getElementById('newFoodEmoji').value = '';
+    document.getElementById('newFoodName').value = '';
+  };
+
+  window.saveEditedFoodCategory = async function(idx) {
+    const emojiEl = document.getElementById(`editFoodEmoji-${idx}`);
+    const nameEl = document.getElementById(`editFoodName-${idx}`);
+    if (!emojiEl || !nameEl) return;
+
+    const newEmoji = emojiEl.value.trim() || '🍽️';
+    const newName = nameEl.value.trim();
+    if (!newName) {
+      alert("食べ物名を入力してください。");
+      return;
+    }
+
+    const updated = window.foodCategories.map((item, i) =>
+      i === idx ? { ...item, emoji: newEmoji, name: newName } : item
+    );
+    await setDoc(foodConfigDocRef, { items: updated });
+  };
+
+  window.deleteFoodCategory = async function(idx) {
+    const target = window.foodCategories[idx];
+    if (!target || target.isDefault) return;
+    if (!confirm(`「${target.emoji} ${target.name}」をリストから削除しますか？`)) return;
+
+    const updated = window.foodCategories.filter((_, i) => i !== idx);
+    await setDoc(foodConfigDocRef, { items: updated });
+  };
 
   window.updateStatus = async function(id, st) {
     const spot = window.spots.find(s=>s.id===id);
@@ -1470,7 +1940,7 @@
       alert("自分が登録した予定のみ削除できます。");
       return;
     }
-    if(confirm("自分が登録したこの予定を削除しますか？")) {
+    if(confirm("自分が登録したこのスポットを削除しますか？")) {
       await deleteDoc(doc(db, "pins", id));
     }
   };
@@ -1478,6 +1948,16 @@
   window.autoSetEmoji = function() {
     const emojis = { sightseeing:'🚴', gourmet:'🦪', hotel:'🏨', other:'📍' };
     document.getElementById('spotEmoji').value = emojis[document.getElementById('spotGenre').value] || '📍';
+  };
+
+  window.onPriorityChange = function() {
+    const val = document.getElementById('spotPriority').value;
+    const helpEl = document.getElementById('priorityHelpText');
+    if (val === 'consider') {
+      helpEl.classList.remove('hidden');
+    } else {
+      helpEl.classList.add('hidden');
+    }
   };
 
   window.checkAndAddUrlInput = function() {
@@ -1491,27 +1971,40 @@
     }
   };
 
-  // 新規追加時、選択した日付・時間に既存の予定があれば次の番号（②, ③...）を自動提案
   window.suggestNextOrder = function() {
     const editId = document.getElementById('editSpotId').value;
     if (editId) return;
     const selectedDate = document.getElementById('spotDate').value;
     const selectedTime = document.getElementById('spotTime').value;
-    const sameCount = window.spots.filter(s => s.date === selectedDate && s.time === selectedTime).length;
+    const sameCount = window.spots.filter(s => !isConsiderSpot(s) && s.date === selectedDate && s.time === selectedTime).length;
     const nextOrd = Math.min(10, sameCount + 1);
     document.getElementById('spotOrder').value = String(nextOrd);
   };
 
-  window.openAddModal = function(lat, lng, name="") {
+  window.openAddConsiderModal = function() {
+    openAddModal(null, null, "", true);
+  };
+
+  window.openAddModal = function(lat, lng, name="", defaultConsider = false) {
     document.getElementById('spotForm').reset();
     document.getElementById('editSpotId').value = "";
     window.clearPhoto();
-    document.getElementById('modalTitle').innerHTML = `<i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加`;
+    document.getElementById('modalTitle').innerHTML = defaultConsider
+      ? `<i data-lucide="sparkles" class="w-5 h-5 text-rose-500"></i>検討リストに候補を追加`
+      : `<i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加`;
     document.getElementById('urlContainer').innerHTML = `<label class="block font-bold text-slate-600 mb-1">参考URL</label><input type="url" class="spotUrlInput w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-sky-400" placeholder="https://..." oninput="checkAndAddUrlInput()">`;
     document.getElementById('spotLat').value = lat || (window.map ? window.map.getCenter().lat : 34.25);
     document.getElementById('spotLng').value = lng || (window.map ? window.map.getCenter().lng : 133.00);
     document.getElementById('spotName').value = name;
     document.getElementById('spotDate').value = window.currentDayTab;
+
+    if (defaultConsider) {
+      document.getElementById('spotGenre').value = 'gourmet';
+      document.getElementById('spotPriority').value = 'consider';
+    } else {
+      document.getElementById('spotPriority').value = '3';
+    }
+    window.onPriorityChange();
     window.suggestNextOrder();
     document.getElementById('spotModal').classList.remove('hidden');
     window.autoSetEmoji();
@@ -1526,15 +2019,17 @@
     document.getElementById('editSpotId').value = spot.id;
     document.getElementById('modalTitle').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-sky-500"></i>予定を編集`;
     document.getElementById('spotName').value = spot.name || "";
+    document.getElementById('spotGenre').value = spot.genre || "sightseeing";
     document.getElementById('spotDate').value = spot.date || "11/30";
     document.getElementById('spotTime').value = spot.time || "09:00";
 
-    const sameTimeList = window.spots.filter(s => s.date === spot.date && s.time === spot.time);
+    const sameTimeList = window.spots.filter(s => !isConsiderSpot(s) && s.date === spot.date && s.time === spot.time);
     const currentPos = sameTimeList.findIndex(s => s.id === spot.id);
     const ordVal = currentPos !== -1 ? (currentPos + 1) : getSpotOrder(spot);
     document.getElementById('spotOrder').value = String(Math.min(10, Math.max(1, ordVal)));
 
     document.getElementById('spotPriority').value = spot.priority || "3";
+    window.onPriorityChange();
     document.getElementById('spotEmoji').value = spot.iconEmoji || "📍";
     document.getElementById('spotComment').value = spot.comment || "";
     document.getElementById('spotLat').value = spot.lat;
@@ -1572,22 +2067,24 @@
     const urls = Array.from(document.querySelectorAll('.spotUrlInput')).map(i=>i.value.trim()).filter(v=>v!=="");
     const dateVal = document.getElementById('spotDate').value;
     const timeVal = document.getElementById('spotTime').value;
+    const priorityVal = document.getElementById('spotPriority').value;
+    const genreVal = document.getElementById('spotGenre').value;
     const orderVal = parseInt(document.getElementById('spotOrder').value, 10) || 1;
 
-    // 同じ日付・同じ時間の他スポットと順番が重複しないように整列して保存
     const othersSameTime = window.spots
-      .filter(s => s.date === dateVal && s.time === timeVal && s.id !== editId);
+      .filter(s => !isConsiderSpot(s) && s.date === dateVal && s.time === timeVal && s.id !== editId);
 
     const targetIndex = Math.max(0, Math.min(othersSameTime.length, orderVal - 1));
     const finalOrder = targetIndex + 1;
 
     const spotData = {
       name: document.getElementById('spotName').value,
+      genre: genreVal,
       date: dateVal,
       time: timeVal,
       orderInTime: finalOrder,
       sortTime: buildSortTime(dateVal, timeVal, finalOrder),
-      priority: document.getElementById('spotPriority').value,
+      priority: priorityVal,
       iconEmoji: document.getElementById('spotEmoji').value,
       comment: document.getElementById('spotComment').value,
       urls: urls,
@@ -1597,18 +2094,19 @@
     };
 
     const batchUpdates = [];
-    // 同じ時間の他スポットの番号も綺麗に①②③...に振り直す
-    let seq = 1;
-    othersSameTime.forEach((sp, idx) => {
-      if (idx === targetIndex) seq++;
-      if (getSpotOrder(sp) !== seq || sp.sortTime !== buildSortTime(dateVal, timeVal, seq)) {
-        batchUpdates.push(updateDoc(doc(db, "pins", sp.id), {
-          orderInTime: seq,
-          sortTime: buildSortTime(dateVal, timeVal, seq)
-        }));
-      }
-      seq++;
-    });
+    if (priorityVal !== 'consider') {
+      let seq = 1;
+      othersSameTime.forEach((sp, idx) => {
+        if (idx === targetIndex) seq++;
+        if (getSpotOrder(sp) !== seq || sp.sortTime !== buildSortTime(dateVal, timeVal, seq)) {
+          batchUpdates.push(updateDoc(doc(db, "pins", sp.id), {
+            orderInTime: seq,
+            sortTime: buildSortTime(dateVal, timeVal, seq)
+          }));
+        }
+        seq++;
+      });
+    }
 
     if(editId) {
       batchUpdates.push(updateDoc(doc(db, "pins", editId), spotData));
@@ -1617,7 +2115,8 @@
         ...spotData,
         status: 'pending',
         recordedBy: window.currentUser || 'メンバー',
-        evaluations: []
+        evaluations: [],
+        likes: []
       }));
     }
 
@@ -1628,6 +2127,8 @@
   window.openEvalModal = function(id) {
     const spot = window.spots.find(s => s.id === id);
     if (!spot) return;
+
+    updateEvalFoodSelectOptions();
 
     const currentUser = window.currentUser || 'メンバー';
     document.getElementById('evalSpotId').value = id;
