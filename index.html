@@ -44,7 +44,7 @@
     padding-top: var(--sat);
     transition: opacity 0.2s ease, visibility 0.2s ease;
   }
-  .panel-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .panel-hidden { display: none !important; opacity: 0; pointer-events: none; }
   .panel-visible { opacity: 1; visibility: visible; pointer-events: auto; }
   #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; padding-bottom: var(--sab); }
 
@@ -302,6 +302,17 @@
     <h3 id="modalTitle" class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加</h3>
     
     <form id="spotForm" onsubmit="saveSpot(event)" class="space-y-3 text-xs">
+      <!-- ▼ 再検索機能 UI -->
+      <div class="bg-sky-50/70 p-2.5 rounded-xl border border-sky-100 mb-4">
+        <label class="block font-bold text-sky-700 mb-1">🔍 場所を再検索してピンを移動</label>
+        <div class="flex gap-1.5">
+          <input type="text" id="editSpotSearchInput" placeholder="施設名や地名を検索..." class="flex-1 border border-sky-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400 text-xs">
+          <button type="button" onclick="searchEditSpotLocation()" class="bg-sky-500 hover:bg-sky-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+        </div>
+        <ul id="editSpotSearchResults" class="divide-y divide-sky-100 bg-white rounded-xl max-h-28 overflow-y-auto text-xs mt-1 shadow-xs hidden"></ul>
+        <p id="editSpotLocationSuccess" class="text-[10px] font-bold text-emerald-600 hidden mt-1">✓ 新しい場所（緯度・経度）をセットしました</p>
+      </div>
+
       <input type="hidden" id="editSpotId">
       <input type="hidden" id="spotLat">
       <input type="hidden" id="spotLng">
@@ -474,47 +485,48 @@
   </div>
 </div>
 
-<!-- 駅選択（発車駅・到着駅）モーダル -->
-<div id="stationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative border border-purple-100">
-    <button type="button" onclick="closeStationModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
-    <h3 class="text-base font-bold text-purple-700 mb-1 flex items-center gap-1.5">🚃 発車駅・到着駅を選択</h3>
-    <p class="text-[11px] text-slate-500 mb-3">この区間は線路の上のみにルート線を引きます。</p>
+<!-- 駅・バス停選択 モーダル -->
+<div id="transitModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative border border-slate-200">
+    <button type="button" onclick="closeTransitModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <h3 id="transitModalTitle" class="text-base font-bold text-slate-700 mb-1 flex items-center gap-1.5">乗車・降車を選択</h3>
+    <p id="transitModalDesc" class="text-[11px] text-slate-500 mb-3"></p>
     
-    <form onsubmit="saveStationRoute(event)" class="space-y-3 text-xs">
-      <input type="hidden" id="stationSpotId">
+    <form onsubmit="saveTransitRoute(event)" class="space-y-3 text-xs">
+      <input type="hidden" id="transitSpotId">
+      <input type="hidden" id="transitMode">
       
-      <!-- 発車駅 -->
-      <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1.5">
-        <label class="block font-bold text-purple-800">🚉 発車駅</label>
+      <!-- 発車 -->
+      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
+        <label id="depTransitLabel" class="block font-bold text-slate-700">発車地</label>
         <div class="flex gap-1.5">
-          <input type="text" id="depStationInput" placeholder="例: 広島駅、尾道駅..." class="flex-1 border border-purple-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-purple-400">
-          <button type="button" onclick="searchStation('dep')" class="bg-purple-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+          <input type="text" id="depTransitInput" placeholder="例: 広島駅、尾道駅..." class="flex-1 border rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400">
+          <button type="button" onclick="searchTransit('dep')" class="bg-slate-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
         </div>
-        <ul id="depStationResults" class="divide-y divide-purple-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs"></ul>
-        <p id="depStationSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
-        <input type="hidden" id="depStationLat">
-        <input type="hidden" id="depStationLng">
-        <input type="hidden" id="depStationName">
+        <ul id="depTransitResults" class="divide-y divide-slate-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs hidden"></ul>
+        <p id="depTransitSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
+        <input type="hidden" id="depTransitLat">
+        <input type="hidden" id="depTransitLng">
+        <input type="hidden" id="depTransitName">
       </div>
 
-      <!-- 到着駅 -->
-      <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1.5">
-        <label class="block font-bold text-purple-800">🏁 到着駅</label>
+      <!-- 到着 -->
+      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
+        <label id="arrTransitLabel" class="block font-bold text-slate-700">到着地</label>
         <div class="flex gap-1.5">
-          <input type="text" id="arrStationInput" placeholder="例: 宮島口駅、今治駅..." class="flex-1 border border-purple-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-purple-400">
-          <button type="button" onclick="searchStation('arr')" class="bg-purple-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+          <input type="text" id="arrTransitInput" placeholder="例: 宮島口..." class="flex-1 border rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400">
+          <button type="button" onclick="searchTransit('arr')" class="bg-slate-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
         </div>
-        <ul id="arrStationResults" class="divide-y divide-purple-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs"></ul>
-        <p id="arrStationSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
-        <input type="hidden" id="arrStationLat">
-        <input type="hidden" id="arrStationLng">
-        <input type="hidden" id="arrStationName">
+        <ul id="arrTransitResults" class="divide-y divide-slate-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs hidden"></ul>
+        <p id="arrTransitSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
+        <input type="hidden" id="arrTransitLat">
+        <input type="hidden" id="arrTransitLng">
+        <input type="hidden" id="arrTransitName">
       </div>
 
       <div class="flex gap-2 pt-1">
-        <button type="button" onclick="closeStationModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">キャンセル</button>
-        <button type="submit" id="btnSaveStation" class="w-2/3 py-2.5 rounded-xl bg-purple-600 text-white font-bold shadow-sm">線路ルートを確定</button>
+        <button type="button" onclick="closeTransitModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">キャンセル</button>
+        <button type="submit" id="btnSaveTransit" class="w-2/3 py-2.5 rounded-xl bg-sky-600 text-white font-bold shadow-sm">ルートを確定</button>
       </div>
     </form>
   </div>
@@ -632,12 +644,10 @@
     return 1;
   }
 
-  // 検討リスト判定ヘルパー
   function isConsiderSpot(spot) {
     return spot.priority === 'consider';
   }
 
-  // localStorageを使った高速キャッシュ読み込み
   function loadCache(storageKey) {
     try {
       return JSON.parse(localStorage.getItem(storageKey) || "{}");
@@ -712,7 +722,6 @@
     initMap(); 
   };
 
-  // 現在地の常時同期を開始し、青い円とマーカーを更新
   function startUserLocationTracking() {
     if (!navigator.geolocation || !window.map) return;
 
@@ -781,7 +790,6 @@
     startUserLocationTracking();
   };
 
-  // グルメカウンター計算＆描画
   function recalculateAndRenderFoodCounters() {
     const totals = {};
     window.foodCategories.forEach(fc => { totals[fc.key] = 0; });
@@ -799,7 +807,6 @@
         }
       }
     });
-
     renderFoodCounterBar(totals);
   }
 
@@ -838,7 +845,6 @@
 
     startUserLocationTracking();
 
-    // グルメ項目リストをFirestoreとリアルタイム同期
     onSnapshot(foodConfigDocRef, (docSnap) => {
       if (docSnap.exists() && Array.isArray(docSnap.data().items) && docSnap.data().items.length > 0) {
         window.foodCategories = docSnap.data().items;
@@ -859,12 +865,9 @@
         window.spots.push({ id: d.id, ...data });
       });
 
-      // クライアント側でも sortTime 順に厳密ソート
       window.spots.sort((a, b) => (a.sortTime || 0) - (b.sortTime || 0));
-
       recalculateAndRenderFoodCounters();
 
-      // 検討リスト件数バッジの更新
       const considerCount = window.spots.filter(s => isConsiderSpot(s)).length;
       const badgeEl = document.getElementById('considerCountBadge');
       if (considerCount > 0) {
@@ -936,7 +939,6 @@
     if (window.railCache[cacheKey] && window.railCache[cacheKey].isRail) {
       return window.railCache[cacheKey];
     }
-
     const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
 
     try {
@@ -1079,12 +1081,11 @@
         } catch (e) {}
       }
     }
-
     return { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
   }
 
-  async function fetchRouteSegment(spotA, spotB) {
-    const mode = spotA.transportToNext || 'car';
+  async function fetchRouteSegment(spotA, spotB, overrideMode = null) {
+    const mode = overrideMode ? overrideMode.transportToNext : (spotA.transportToNext || 'car');
     const cacheKey = `${spotA.lat.toFixed(5)},${spotA.lng.toFixed(5)}_${spotB.lat.toFixed(5)},${spotB.lng.toFixed(5)}_${mode}`;
     
     if (window.routeCache[cacheKey]) {
@@ -1093,13 +1094,7 @@
 
     if (mode === 'plane') {
       const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
-      const res = {
-        coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
-        distance: dist,
-        duration: null,
-        isStraight: true,
-        mode: mode
-      };
+      const res = { coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]], distance: dist, duration: null, isStraight: true, mode: mode };
       window.routeCache[cacheKey] = res;
       saveCache("shimaneko_route_cache_v2", window.routeCache);
       return res;
@@ -1117,13 +1112,7 @@
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
         const route = data.routes[0];
         const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-        const result = {
-          coords: coords,
-          distance: route.distance,
-          duration: route.duration,
-          isStraight: false,
-          mode: mode
-        };
+        const result = { coords: coords, distance: route.distance, duration: route.duration, isStraight: false, mode: mode };
         window.routeCache[cacheKey] = result;
         saveCache("shimaneko_route_cache_v2", window.routeCache);
         return result;
@@ -1133,13 +1122,7 @@
     }
 
     const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
-    return {
-      coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
-      distance: dist,
-      duration: null,
-      isStraight: true,
-      mode: mode
-    };
+    return { coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]], distance: dist, duration: null, isStraight: true, mode: mode };
   }
 
   async function drawMapRoutesAndUpdateDistances(daySpots) {
@@ -1160,23 +1143,27 @@
         if (spotA.trainRoute && spotA.trainRoute.dep && spotA.trainRoute.arr) {
           segmentPromises.push(
             fetchRailwayGeometry(spotA.trainRoute.dep, spotA.trainRoute.arr).then(railSeg => ({
-              type: 'train_ready',
-              spotA,
-              dep: spotA.trainRoute.dep,
-              arr: spotA.trainRoute.arr,
-              railSeg
+              type: 'train_ready', spotA, dep: spotA.trainRoute.dep, arr: spotA.trainRoute.arr, railSeg
             }))
           );
         } else {
-          segmentPromises.push(Promise.resolve({ type: 'train_unset', spotA }));
+          segmentPromises.push(Promise.resolve({ type: 'transit_unset', spotA, mode }));
+        }
+      } else if (mode === 'bus') {
+        if (spotA.busRoute && spotA.busRoute.dep && spotA.busRoute.arr) {
+          const simMode = { ...spotA, transportToNext: 'car' }; 
+          segmentPromises.push(
+            fetchRouteSegment(spotA.busRoute.dep, spotA.busRoute.arr, simMode).then(segment => ({
+              type: 'bus_ready', spotA, dep: spotA.busRoute.dep, arr: spotA.busRoute.arr, segment
+            }))
+          );
+        } else {
+          segmentPromises.push(Promise.resolve({ type: 'transit_unset', spotA, mode }));
         }
       } else {
         segmentPromises.push(
           fetchRouteSegment(spotA, spotB).then(segment => ({
-            type: 'normal',
-            spotA,
-            mode,
-            segment
+            type: 'normal', spotA, mode, segment
           }))
         );
       }
@@ -1194,26 +1181,32 @@
 
       if (item.type === 'train_ready') {
         const lineRail = L.polyline(item.railSeg.coords, {
-          color: '#8b5cf6',
-          weight: 5,
-          opacity: 0.9,
-          lineJoin: 'round'
+          color: '#8b5cf6', weight: 5, opacity: 0.9, lineJoin: 'round'
         }).addTo(window.map);
         window.routeLayers.push(lineRail);
 
         addStationPin(item.dep.lat, item.dep.lng, item.dep.name);
         addStationPin(item.arr.lat, item.arr.lng, item.arr.name);
 
-        if (badgeEl) {
-          badgeEl.innerHTML = `🚃 ${item.dep.name} → ${item.arr.name} (線路 約 ${formatDistance(item.railSeg.distance)})`;
-        }
+        if (badgeEl) badgeEl.innerHTML = `🚃 ${item.dep.name} → ${item.arr.name} (線路 約 ${formatDistance(item.railSeg.distance)})`;
         continue;
       }
 
-      if (item.type === 'train_unset') {
-        if (badgeEl) {
-          badgeEl.innerHTML = `🚃 発車駅・到着駅を選択してください`;
-        }
+      if (item.type === 'bus_ready') {
+        const polyline = L.polyline(item.segment.coords, {
+          color: '#10b981', weight: 5, opacity: 0.9, lineJoin: 'round'
+        }).addTo(window.map);
+        window.routeLayers.push(polyline);
+
+        addStationPin(item.dep.lat, item.dep.lng, item.dep.name); 
+        addStationPin(item.arr.lat, item.arr.lng, item.arr.name);
+
+        if (badgeEl) badgeEl.innerHTML = `🚌 ${item.dep.name} → ${item.arr.name} (道路 約 ${formatDistance(item.segment.distance)})`;
+        continue;
+      }
+
+      if (item.type === 'transit_unset') {
+        if (badgeEl) badgeEl.innerHTML = item.mode === 'train' ? `🚃 発車・到着駅を選択してください` : `🚌 乗車・降車バス停を選択してください`;
         continue;
       }
 
@@ -1225,11 +1218,7 @@
       if (mode === 'plane') lineColor = '#ec4899';
 
       const polyline = L.polyline(segment.coords, {
-        color: lineColor,
-        weight: 5,
-        opacity: 0.85,
-        dashArray: segment.isStraight ? '8, 8' : null,
-        lineJoin: 'round'
+        color: lineColor, weight: 5, opacity: 0.85, dashArray: segment.isStraight ? '8, 8' : null, lineJoin: 'round'
       }).addTo(window.map);
       window.routeLayers.push(polyline);
 
@@ -1245,11 +1234,9 @@
         }
       }
     }
-
     lucide.createIcons();
   }
 
-  // 同じ日付・同じ時間の予定同士をタイムライン上で直接入れ替える
   window.swapSameTimeOrder = async function(spotIdA, spotIdB) {
     const spotA = window.spots.find(s => s.id === spotIdA);
     const spotB = window.spots.find(s => s.id === spotIdB);
@@ -1276,121 +1263,137 @@
     );
   };
 
+  const modes = [
+    { key: 'walk', label: '🚶 徒歩' },
+    { key: 'bike', label: '🚲 自転車' },
+    { key: 'train', label: '🚃 電車' },
+    { key: 'bus', label: '🚌 バス' },
+    { key: 'car', label: '🚗 車・タクシー' },
+    { key: 'plane', label: '✈️ 飛行機' }
+  ];
+
   window.updateTransport = async function(id, mode) {
-    if (mode === 'train') {
-      openStationModal(id);
+    if (mode === 'train' || mode === 'bus') {
+      openTransitModal(id, mode);
       return;
     }
     await updateDoc(doc(db, "pins", id), { transportToNext: mode });
   };
 
-  window.openStationModal = function(spotId) {
+  window.openTransitModal = function(spotId, mode) {
     const spot = window.spots.find(s => s.id === spotId);
     if (!spot) return;
 
-    document.getElementById('stationSpotId').value = spotId;
-    document.getElementById('depStationResults').innerHTML = "";
-    document.getElementById('arrStationResults').innerHTML = "";
+    document.getElementById('transitSpotId').value = spotId;
+    document.getElementById('transitMode').value = mode;
+    document.getElementById('depTransitResults').innerHTML = "";
+    document.getElementById('arrTransitResults').innerHTML = "";
 
-    if (spot.trainRoute && spot.trainRoute.dep && spot.trainRoute.arr) {
-      document.getElementById('depStationInput').value = spot.trainRoute.dep.name;
-      document.getElementById('depStationName').value = spot.trainRoute.dep.name;
-      document.getElementById('depStationLat').value = spot.trainRoute.dep.lat;
-      document.getElementById('depStationLng').value = spot.trainRoute.dep.lng;
-      const depLbl = document.getElementById('depStationSelectedLabel');
-      depLbl.textContent = `✓ 選択済: ${spot.trainRoute.dep.name}`;
+    const isTrain = mode === 'train';
+    document.getElementById('transitModalTitle').innerHTML = isTrain ? '🚃 発車・到着駅を選択' : '🚌 乗車・降車バス停を選択';
+    document.getElementById('transitModalDesc').textContent = isTrain ? '線路の上にルートを引きます' : '道路上にバスのルートを引きます';
+    document.getElementById('depTransitLabel').textContent = isTrain ? '🚉 発車駅' : '🚏 乗車バス停';
+    document.getElementById('arrTransitLabel').textContent = isTrain ? '🏁 到着駅' : '🏁 降車バス停';
+    document.getElementById('btnSaveTransit').className = `w-2/3 py-2.5 rounded-xl text-white font-bold shadow-sm ${isTrain ? 'bg-purple-600' : 'bg-emerald-600'}`;
+
+    const routeData = isTrain ? spot.trainRoute : spot.busRoute;
+
+    if (routeData && routeData.dep && routeData.arr) {
+      document.getElementById('depTransitInput').value = routeData.dep.name;
+      document.getElementById('depTransitName').value = routeData.dep.name;
+      document.getElementById('depTransitLat').value = routeData.dep.lat;
+      document.getElementById('depTransitLng').value = routeData.dep.lng;
+      const depLbl = document.getElementById('depTransitSelectedLabel');
+      depLbl.textContent = `✓ 選択済: ${routeData.dep.name}`;
       depLbl.classList.remove('hidden');
 
-      document.getElementById('arrStationInput').value = spot.trainRoute.arr.name;
-      document.getElementById('arrStationName').value = spot.trainRoute.arr.name;
-      document.getElementById('arrStationLat').value = spot.trainRoute.arr.lat;
-      document.getElementById('arrStationLng').value = spot.trainRoute.arr.lng;
-      const arrLbl = document.getElementById('arrStationSelectedLabel');
-      arrLbl.textContent = `✓ 選択済: ${spot.trainRoute.arr.name}`;
+      document.getElementById('arrTransitInput').value = routeData.arr.name;
+      document.getElementById('arrTransitName').value = routeData.arr.name;
+      document.getElementById('arrTransitLat').value = routeData.arr.lat;
+      document.getElementById('arrTransitLng').value = routeData.arr.lng;
+      const arrLbl = document.getElementById('arrTransitSelectedLabel');
+      arrLbl.textContent = `✓ 選択済: ${routeData.arr.name}`;
       arrLbl.classList.remove('hidden');
     } else {
-      document.getElementById('depStationInput').value = "";
-      document.getElementById('depStationName').value = "";
-      document.getElementById('depStationLat').value = "";
-      document.getElementById('depStationLng').value = "";
-      document.getElementById('depStationSelectedLabel').classList.add('hidden');
-
-      document.getElementById('arrStationInput').value = "";
-      document.getElementById('arrStationName').value = "";
-      document.getElementById('arrStationLat').value = "";
-      document.getElementById('arrStationLng').value = "";
-      document.getElementById('arrStationSelectedLabel').classList.add('hidden');
+      document.getElementById('depTransitInput').value = "";
+      document.getElementById('depTransitSelectedLabel').classList.add('hidden');
+      document.getElementById('arrTransitInput').value = "";
+      document.getElementById('arrTransitSelectedLabel').classList.add('hidden');
     }
-
-    document.getElementById('stationModal').classList.remove('hidden');
-    lucide.createIcons();
+    document.getElementById('transitModal').classList.remove('hidden');
   };
 
-  window.closeStationModal = () => document.getElementById('stationModal').classList.add('hidden');
+  window.closeTransitModal = () => document.getElementById('transitModal').classList.add('hidden');
 
-  window.searchStation = async function(type) {
-    const inputEl = document.getElementById(type === 'dep' ? 'depStationInput' : 'arrStationInput');
-    const ul = document.getElementById(type === 'dep' ? 'depStationResults' : 'arrStationResults');
+  window.searchTransit = async function(type) {
+    const mode = document.getElementById('transitMode').value;
+    const inputEl = document.getElementById(type === 'dep' ? 'depTransitInput' : 'arrTransitInput');
+    const ul = document.getElementById(type === 'dep' ? 'depTransitResults' : 'arrTransitResults');
     const raw = inputEl.value.trim();
     if (!raw) return;
 
     ul.innerHTML = `<li class="p-2 text-slate-400">検索中...</li>`;
-    const queryStr = raw.endsWith('駅') ? raw : `${raw} 駅`;
+    ul.classList.remove('hidden');
+    let queryStr = raw;
+    if (mode === 'train' && !raw.endsWith('駅')) queryStr += ' 駅';
+    if (mode === 'bus' && !raw.endsWith('バス停') && !raw.endsWith('センター')) queryStr += ' バス停';
+
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&countrycodes=jp`);
     const data = await res.json();
 
     ul.innerHTML = "";
     if (data.length > 0) {
       data.slice(0, 5).forEach(item => {
-        const stName = item.display_name.split(',')[0];
+        const name = item.display_name.split(',')[0];
         const li = document.createElement('li');
-        li.className = "p-2 hover:bg-purple-50 cursor-pointer flex justify-between items-center";
-        li.innerHTML = `<span class="font-bold text-slate-700">🚉 ${stName}</span><span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">選択</span>`;
+        li.className = `p-2 hover:bg-slate-50 cursor-pointer flex justify-between items-center`;
+        li.innerHTML = `<span class="font-bold text-slate-700">${mode === 'train' ? '🚉' : '🚏'} ${name}</span><span class="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">選択</span>`;
         li.onclick = () => {
-          document.getElementById(`${type}StationName`).value = stName;
-          document.getElementById(`${type}StationLat`).value = item.lat;
-          document.getElementById(`${type}StationLng`).value = item.lon;
-          inputEl.value = stName;
-          const lbl = document.getElementById(`${type}StationSelectedLabel`);
-          lbl.textContent = `✓ 選択済: ${stName}`;
+          document.getElementById(`${type}TransitName`).value = name;
+          document.getElementById(`${type}TransitLat`).value = item.lat;
+          document.getElementById(`${type}TransitLng`).value = item.lon;
+          inputEl.value = name;
+          const lbl = document.getElementById(`${type}TransitSelectedLabel`);
+          lbl.textContent = `✓ 選択済: ${name}`;
           lbl.classList.remove('hidden');
-          ul.innerHTML = "";
+          ul.classList.add('hidden');
         };
         ul.appendChild(li);
       });
     } else {
-      ul.innerHTML = `<li class="p-2 text-slate-400">駅が見つかりませんでした</li>`;
+      ul.innerHTML = `<li class="p-2 text-slate-400">見つかりませんでした</li>`;
     }
   };
 
-  window.saveStationRoute = async function(e) {
+  window.saveTransitRoute = async function(e) {
     e.preventDefault();
-    const id = document.getElementById('stationSpotId').value;
-    const depLat = parseFloat(document.getElementById('depStationLat').value);
-    const depLng = parseFloat(document.getElementById('depStationLng').value);
-    const depName = document.getElementById('depStationName').value;
+    const id = document.getElementById('transitSpotId').value;
+    const mode = document.getElementById('transitMode').value;
+    const depLat = parseFloat(document.getElementById('depTransitLat').value);
+    const depLng = parseFloat(document.getElementById('depTransitLng').value);
+    const depName = document.getElementById('depTransitName').value;
 
-    const arrLat = parseFloat(document.getElementById('arrStationLat').value);
-    const arrLng = parseFloat(document.getElementById('arrStationLng').value);
-    const arrName = document.getElementById('arrStationName').value;
+    const arrLat = parseFloat(document.getElementById('arrTransitLat').value);
+    const arrLng = parseFloat(document.getElementById('arrTransitLng').value);
+    const arrName = document.getElementById('arrTransitName').value;
 
-    if (!depLat || !arrLat) {
-      alert("発車駅と到着駅を検索してリストから選択してください。");
-      return;
-    }
+    if (!depLat || !arrLat) return alert("発車地と到着地を検索してリストから選択してください。");
 
-    await updateDoc(doc(db, "pins", id), {
-      transportToNext: 'train',
-      trainRoute: {
-        dep: { name: depName, lat: depLat, lng: depLng },
-        arr: { name: arrName, lat: arrLat, lng: arrLng }
-      }
-    });
+    const routeObj = {
+      dep: { name: depName, lat: depLat, lng: depLng },
+      arr: { name: arrName, lat: arrLat, lng: arrLng }
+    };
+    
+    const updateObj = { transportToNext: mode };
+    if (mode === 'train') updateObj.trainRoute = routeObj;
+    if (mode === 'bus') updateObj.busRoute = routeObj;
 
-    closeStationModal();
+    await updateDoc(doc(db, "pins", id), updateObj);
+    closeTransitModal();
   };
 
   window.toggleSearch = function() { document.getElementById('searchContainer').classList.toggle('hidden'); };
+  
   window.executeSearch = async function() {
     const val = document.getElementById('searchInput').value.trim();
     if(!val) return;
@@ -1412,9 +1415,10 @@
     } else { ul.innerHTML = "<li class='p-3 text-slate-400'>見つかりませんでした</li>"; }
   };
 
-  // 下部3タブ切り替え：「consider（検討リスト）」「map（マップ）」「route（みちのり）」
   window.switchMainTab = function(tab) {
     window.currentMainTab = tab;
+    document.getElementById('searchContainer').classList.add('hidden'); // タブ切り替え時に検索バーを隠す
+
     const considerPanel = document.getElementById('consider-panel');
     const timelinePanel = document.getElementById('timeline-panel');
     const uiLayer = document.getElementById('ui-layer');
@@ -1423,7 +1427,7 @@
     const btnMap = document.getElementById('navBtnMap');
     const btnRoute = document.getElementById('navBtnRoute');
 
-    btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
+    btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px] relative";
     btnMap.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
     btnRoute.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
 
@@ -1431,7 +1435,7 @@
       considerPanel.classList.replace('panel-hidden', 'panel-visible');
       timelinePanel.classList.replace('panel-visible', 'panel-hidden');
       uiLayer.style.display = 'none';
-      btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-rose-500 font-extrabold text-[11px]";
+      btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-rose-500 font-extrabold text-[11px] relative";
       renderConsiderTimeline();
     } else if (tab === 'map') {
       considerPanel.classList.replace('panel-visible', 'panel-hidden');
@@ -1472,7 +1476,6 @@
     return { badge: 'bg-slate-100 text-slate-600 border-slate-200', card: 'bg-slate-50 border-slate-200' };
   }
 
-  // ピン描画：「検討リストへ！」は赤色ピン（#ef4444）、みちのりは水色ピン（#38bdf8）
   function renderMarkers() {
     window.markers.forEach(m => window.map.removeLayer(m)); window.markers = [];
     window.spots.forEach(spot => {
@@ -1535,7 +1538,6 @@
     });
   }
 
-  // 検討リスト用フィルター切り替え
   window.setConsiderFilter = function(filterKey) {
     window.considerFilter = filterKey;
     document.querySelectorAll('.consider-filter-btn').forEach(btn => {
@@ -1548,7 +1550,6 @@
     renderConsiderTimeline();
   };
 
-  // 左タブ「検討リスト」タイムライン描画
   function renderConsiderTimeline() {
     const list = document.getElementById('considerTimelineList');
     if (!list) return;
@@ -1573,7 +1574,6 @@
     }
 
     list.innerHTML = candidates.map(spot => {
-      const isMySpot = spot.recordedBy === window.currentUser;
       const likes = Array.isArray(spot.likes) ? spot.likes : [];
       const iLiked = likes.includes(window.currentUser);
       const urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-600 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
@@ -1594,7 +1594,7 @@
             <button onclick="focusSpotOnMap('${spot.id}')" title="地図で見る" class="text-sky-600 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-0.5">
               <i data-lucide="map-pin" class="w-3 h-3"></i>地図
             </button>
-            ${isMySpot ? `<button onclick="deleteSpot('${spot.id}')" title="候補を削除" class="text-rose-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+            <button onclick="deleteSpot('${spot.id}')" title="候補を削除" class="text-rose-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
           </div>
         </div>
 
@@ -1651,7 +1651,6 @@
     }
   };
 
-  // 検討リストから「みちのり」へ採用するモーダル
   window.openPromoteModal = function(spotId) {
     const spot = window.spots.find(s => s.id === spotId);
     if (!spot) return;
@@ -1689,7 +1688,6 @@
     switchMainTab('route');
   };
 
-  // 検討リストへ戻す（取り下げ）
   window.demoteToConsider = async function(spotId) {
     if (!confirm("このスポットを「検討リスト（赤ピン）」に戻しますか？")) return;
     await updateDoc(doc(db, "pins", spotId), {
@@ -1698,7 +1696,6 @@
     });
   };
 
-  // 右タブ「みちのり」タイムライン描画（予約済み〜★1のみ）
   function renderRouteTimeline(autoScroll = false) {
     const list = document.getElementById('routeTimelineList');
     const daySpots = window.spots.filter(s => !isConsiderSpot(s) && s.date === window.currentDayTab);
@@ -1708,7 +1705,6 @@
     list.innerHTML = daySpots.map((spot, index) => {
       const isDone = spot.status === 'done';
       const isCancel = spot.status === 'cancel';
-      const isMySpot = spot.recordedBy === window.currentUser;
 
       if(!isDone && !isCancel && firstUnfinishedIndex === -1) {
         firstUnfinishedIndex = index;
@@ -1772,17 +1768,13 @@
         const straightDist = formatDistance(calcStraightDistance(spot.lat, spot.lng, nextSpot.lat, nextSpot.lng));
         const currentMode = spot.transportToNext || "";
         
-        const modes = [
-          { key: 'walk', label: '🚶 徒歩' },
-          { key: 'bike', label: '🚲 自転車' },
-          { key: 'train', label: '🚃 電車・バス' },
-          { key: 'car', label: '🚗 シェアカー' },
-          { key: 'plane', label: '✈️ 飛行機' }
-        ];
-
         const modeButtons = modes.map(m => {
           const active = currentMode === m.key;
-          return `<button onclick="updateTransport('${spot.id}', '${(active && m.key !== 'train') ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? (m.key === 'train' ? 'bg-purple-600 text-white shadow-sm' : 'bg-sky-500 text-white shadow-sm') : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
+          let btnColor = 'bg-sky-500 text-white shadow-sm';
+          if (active && m.key === 'train') btnColor = 'bg-purple-600 text-white shadow-sm';
+          if (active && m.key === 'bus') btnColor = 'bg-emerald-600 text-white shadow-sm';
+
+          return `<button onclick="updateTransport('${spot.id}', '${(active && m.key !== 'train' && m.key !== 'bus') ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? btnColor : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
         }).join('');
 
         let trainInfoHtml = "";
@@ -1790,7 +1782,14 @@
           trainInfoHtml = `
           <div class="flex items-center gap-1.5 text-[10px] text-purple-700 font-bold">
             <span class="bg-purple-100 px-2 py-0.5 rounded-full">🚉 ${spot.trainRoute.dep.name} ➔ ${spot.trainRoute.arr.name}</span>
-            <button onclick="openStationModal('${spot.id}')" class="underline text-purple-600">駅変更</button>
+            <button onclick="openTransitModal('${spot.id}', 'train')" class="underline text-purple-600">駅変更</button>
+            <button onclick="updateTransport('${spot.id}', '')" class="text-slate-400 hover:text-rose-500">解除</button>
+          </div>`;
+        } else if (currentMode === 'bus' && spot.busRoute && spot.busRoute.dep && spot.busRoute.arr) {
+          trainInfoHtml = `
+          <div class="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold">
+            <span class="bg-emerald-100 px-2 py-0.5 rounded-full">🚏 ${spot.busRoute.dep.name} ➔ ${spot.busRoute.arr.name}</span>
+            <button onclick="openTransitModal('${spot.id}', 'bus')" class="underline text-emerald-600">バス停変更</button>
             <button onclick="updateTransport('${spot.id}', '')" class="text-slate-400 hover:text-rose-500">解除</button>
           </div>`;
         }
@@ -1822,7 +1821,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
-              ${isMySpot ? `<button onclick="deleteSpot('${spot.id}')" title="自分の予定を削除" class="text-rose-400 hover:text-rose-600 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+              <button onclick="deleteSpot('${spot.id}')" title="予定を削除" class="text-rose-400 hover:text-rose-600 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
           <div>
@@ -1864,7 +1863,6 @@
     }
   }
 
-  // グルメ項目管理モーダル関連
   window.openFoodManageModal = function() {
     renderFoodManageList();
     document.getElementById('foodManageModal').classList.remove('hidden');
@@ -1936,12 +1934,46 @@
   window.deleteSpot = async function(id) {
     const spot = window.spots.find(s => s.id === id);
     if (!spot) return;
-    if (spot.recordedBy !== window.currentUser) {
-      alert("自分が登録した予定のみ削除できます。");
-      return;
-    }
-    if(confirm("自分が登録したこのスポットを削除しますか？")) {
+    if(confirm("このスポットを削除しますか？")) {
       await deleteDoc(doc(db, "pins", id));
+    }
+  };
+
+  window.searchEditSpotLocation = async function() {
+    const inputEl = document.getElementById('editSpotSearchInput');
+    const ul = document.getElementById('editSpotSearchResults');
+    const successMsg = document.getElementById('editSpotLocationSuccess');
+    const val = inputEl.value.trim();
+    if (!val) return;
+
+    ul.innerHTML = `<li class="p-2 text-slate-400">検索中...</li>`;
+    ul.classList.remove('hidden');
+    successMsg.classList.add('hidden');
+
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=jp`);
+    const data = await res.json();
+
+    ul.innerHTML = "";
+    if (data.length > 0) {
+      data.slice(0, 5).forEach(item => {
+        const placeName = item.display_name.split(',')[0];
+        const li = document.createElement('li');
+        li.className = "p-2 hover:bg-sky-50 cursor-pointer flex justify-between items-center";
+        li.innerHTML = `<span class="font-bold text-slate-700">${placeName}</span><span class="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">ここに決定</span>`;
+        li.onclick = () => {
+          document.getElementById('spotLat').value = item.lat;
+          document.getElementById('spotLng').value = item.lon;
+          if (confirm(`スポット名も「${placeName}」に変更しますか？\n(キャンセルで座標のみ変更)`)) {
+            document.getElementById('spotName').value = placeName;
+          }
+          ul.classList.add('hidden');
+          inputEl.value = "";
+          successMsg.classList.remove('hidden');
+        };
+        ul.appendChild(li);
+      });
+    } else {
+      ul.innerHTML = `<li class="p-2 text-slate-400">見つかりませんでした</li>`;
     }
   };
 
@@ -1988,6 +2020,10 @@
   window.openAddModal = function(lat, lng, name="", defaultConsider = false) {
     document.getElementById('spotForm').reset();
     document.getElementById('editSpotId').value = "";
+    document.getElementById('editSpotSearchInput').value = "";
+    document.getElementById('editSpotSearchResults').classList.add('hidden');
+    document.getElementById('editSpotLocationSuccess').classList.add('hidden');
+    
     window.clearPhoto();
     document.getElementById('modalTitle').innerHTML = defaultConsider
       ? `<i data-lucide="sparkles" class="w-5 h-5 text-rose-500"></i>検討リストに候補を追加`
@@ -2017,6 +2053,10 @@
 
     document.getElementById('spotForm').reset();
     document.getElementById('editSpotId').value = spot.id;
+    document.getElementById('editSpotSearchInput').value = "";
+    document.getElementById('editSpotSearchResults').classList.add('hidden');
+    document.getElementById('editSpotLocationSuccess').classList.add('hidden');
+
     document.getElementById('modalTitle').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-sky-500"></i>予定を編集`;
     document.getElementById('spotName').value = spot.name || "";
     document.getElementById('spotGenre').value = spot.genre || "sightseeing";
