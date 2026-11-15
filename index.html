@@ -49,7 +49,7 @@
   #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; padding-bottom: var(--sab); }
 
   /* ピンのスタイル */
-  .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.28); border: 2.5px solid white; }
+  .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.28); border: 2.5px solid white; cursor: move; }
   .pin-done { background-color: #f472b6 !important; border-color: #fbcfe8 !important; opacity: 0.92; } 
   .pin-cancel { background-color: #cbd5e1 !important; opacity: 0.4; text-decoration: line-through; }
 
@@ -195,7 +195,7 @@
       </div>
     </header>
 
-    <!-- グルメカウンター（項目追加・編集可能） -->
+    <!-- グルメカウンター -->
     <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex items-center gap-2 border border-orange-100">
       <div id="foodCounterItems" class="flex gap-3 overflow-x-auto hide-scrollbar flex-1 items-center"></div>
       <button onclick="openFoodManageModal()" title="食べ物リストの追加・編集" class="shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 rounded-lg px-2 py-1 text-[10px] font-extrabold flex items-center gap-1 active:scale-95 transition">
@@ -213,7 +213,7 @@
     </div>
   </div>
 
-  <!-- マップ左下：凡例 & 表示中ルート日付バッジ / 右下：操作ボタン -->
+  <!-- マップ左下＆右下 -->
   <div class="p-4 flex items-end justify-between pointer-events-none pb-4 w-full box-border">
     <div class="flex flex-col gap-1.5 pointer-events-auto">
       <div class="bg-white/95 backdrop-blur px-2.5 py-1 rounded-full shadow-sm border border-slate-100 text-[10px] font-bold text-slate-600 flex items-center gap-2">
@@ -232,7 +232,7 @@
   </div>
 </div>
 
-<!-- 左タブ：検討リストパネル（未定・候補スポットの取捨選択用） -->
+<!-- 左タブ：検討リストパネル -->
 <div id="consider-panel" class="sub-panel flex flex-col panel-hidden border-t border-rose-200">
   <div class="p-4 bg-gradient-to-r from-rose-50 via-amber-50 to-orange-50 shadow-sm z-10 shrink-0 border-b border-rose-100">
     <div class="flex items-center justify-between mb-2">
@@ -246,7 +246,6 @@
         <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>候補追加</span>
       </button>
     </div>
-    <!-- 絞り込みフィルター -->
     <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pt-1" id="considerFilterContainer">
       <button onclick="setConsiderFilter('all')" class="consider-filter-btn bg-rose-500 text-white rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="all">すべて</button>
       <button onclick="setConsiderFilter('gourmet')" class="consider-filter-btn bg-white text-slate-600 border border-rose-200 rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="gourmet">🍽️ ご飯・カフェ</button>
@@ -257,7 +256,7 @@
   <div id="considerTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-12 scroll-smooth"></div>
 </div>
 
-<!-- 右タブ：みちのりタイムラインパネル（予約済み〜★1のみ） -->
+<!-- 右タブ：みちのりタイムラインパネル -->
 <div id="timeline-panel" class="sub-panel flex flex-col panel-hidden border-t border-slate-200">
   <div class="p-4 bg-white shadow-sm z-10 shrink-0">
     <div class="flex items-center justify-between mb-3">
@@ -276,7 +275,7 @@
   <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-2 pb-12 scroll-smooth"></div>
 </div>
 
-<!-- 下部3タブナビゲーション：左「検討リスト」・中央「マップ」・右「みちのり」 -->
+<!-- 下部3タブナビゲーション -->
 <nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.06)] border-t border-sky-100 flex pointer-events-auto">
   <button onclick="switchMainTab('consider')" id="navBtnConsider" class="flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px] relative">
     <div class="relative">
@@ -302,15 +301,27 @@
     <h3 id="modalTitle" class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加</h3>
     
     <form id="spotForm" onsubmit="saveSpot(event)" class="space-y-3 text-xs">
-      <!-- ▼ 再検索機能 UI -->
-      <div class="bg-sky-50/70 p-2.5 rounded-xl border border-sky-100 mb-4">
-        <label class="block font-bold text-sky-700 mb-1">🔍 場所を再検索してピンを移動</label>
-        <div class="flex gap-1.5">
-          <input type="text" id="editSpotSearchInput" placeholder="施設名や地名を検索..." class="flex-1 border border-sky-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400 text-xs">
-          <button type="button" onclick="searchEditSpotLocation()" class="bg-sky-500 hover:bg-sky-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+      
+      <!-- ▼ 座標修正機能 UI -->
+      <div class="bg-sky-50/70 p-2.5 rounded-xl border border-sky-100 mb-4 space-y-3">
+        <div>
+          <label class="block font-bold text-sky-700 mb-1">🔍 場所を再検索してピンを移動</label>
+          <div class="flex gap-1.5">
+            <input type="text" id="editSpotSearchInput" placeholder="施設名や地名を検索..." class="flex-1 border border-sky-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400 text-xs">
+            <button type="button" onclick="searchEditSpotLocation()" class="bg-sky-500 hover:bg-sky-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+          </div>
+          <ul id="editSpotSearchResults" class="divide-y divide-sky-100 bg-white rounded-xl max-h-28 overflow-y-auto text-xs mt-1 shadow-xs hidden"></ul>
         </div>
-        <ul id="editSpotSearchResults" class="divide-y divide-sky-100 bg-white rounded-xl max-h-28 overflow-y-auto text-xs mt-1 shadow-xs hidden"></ul>
-        <p id="editSpotLocationSuccess" class="text-[10px] font-bold text-emerald-600 hidden mt-1">✓ 新しい場所（緯度・経度）をセットしました</p>
+        
+        <!-- 追加: 中心座標セットボタン -->
+        <div class="border-t border-sky-200/60 pt-2">
+          <label class="block font-bold text-sky-700 mb-1 text-[10px]">💡 または、地図を動かして中心に合わせる</label>
+          <button type="button" onclick="setSpotLocationToMapCenter()" class="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition">
+            <i data-lucide="crosshair" class="w-4 h-4"></i> 現在の地図の中央座標をセット
+          </button>
+        </div>
+        
+        <p id="editSpotLocationSuccess" class="text-[10px] font-bold text-emerald-600 hidden mt-1 text-center">✓ 新しい場所（緯度・経度）をセットしました！</p>
       </div>
 
       <input type="hidden" id="editSpotId">
@@ -350,7 +361,6 @@
         <p id="priorityHelpText" class="text-[10px] text-rose-500 font-bold mt-1 hidden">※ 赤ピンで地図に表示され、左の「検討リスト」に入ります</p>
       </div>
 
-      <!-- 日付・時間・同時間内の順番（①②③） -->
       <div class="grid grid-cols-3 gap-2">
         <div>
           <label class="block font-bold text-slate-600 mb-1">日付（目安）</label>
@@ -410,6 +420,13 @@
       </div>
     </form>
   </div>
+</div>
+
+<!-- 写真拡大（Lightbox）モーダル -->
+<div id="photoModal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[9999] hidden flex flex-col items-center justify-center p-4 transition-opacity duration-300" onclick="closePhotoModal()">
+  <button type="button" onclick="closePhotoModal()" class="absolute right-4 text-white p-2 bg-slate-800/60 rounded-full hover:bg-slate-700/60 transition shadow-lg" style="top: calc(16px + var(--sat));"><i data-lucide="x" class="w-6 h-6"></i></button>
+  <img id="photoModalImg" src="" class="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl pointer-events-auto" onclick="event.stopPropagation();">
+  <p class="text-white/90 text-xs font-bold mt-5 pointer-events-auto bg-slate-800/50 px-4 py-2 rounded-full backdrop-blur-sm shadow-md flex items-center gap-1.5"><i data-lucide="download" class="w-4 h-4"></i>画像を長押しで保存・共有できます</p>
 </div>
 
 <!-- 検討リストから「みちのり」へ採用モーダル -->
@@ -709,6 +726,36 @@
     });
   };
 
+  // ----- 追加: 写真拡大（Lightbox）関連 -----
+  window.openPhotoModal = function(src) {
+    const photoModal = document.getElementById('photoModal');
+    const photoModalImg = document.getElementById('photoModalImg');
+    photoModalImg.src = src;
+    photoModal.classList.remove('hidden');
+    lucide.createIcons();
+  };
+  window.closePhotoModal = function() {
+    const photoModal = document.getElementById('photoModal');
+    const photoModalImg = document.getElementById('photoModalImg');
+    photoModal.classList.add('hidden');
+    photoModalImg.src = "";
+  };
+  // ------------------------------------------
+
+  // ----- 追加: マップ中心座標セット機能 -----
+  window.setSpotLocationToMapCenter = function() {
+    if(!window.map) return;
+    const center = window.map.getCenter();
+    document.getElementById('spotLat').value = center.lat;
+    document.getElementById('spotLng').value = center.lng;
+    
+    document.getElementById('editSpotSearchResults').classList.add('hidden');
+    const successMsg = document.getElementById('editSpotLocationSuccess');
+    successMsg.textContent = "✓ マップの中央座標をセットしました！";
+    successMsg.classList.remove('hidden');
+  };
+  // ------------------------------------------
+
   window.clearPhoto = function() {
     window.currentPhotoBase64 = null;
     document.getElementById('spotPhotoInput').value = "";
@@ -963,7 +1010,8 @@
         }
       }
     } catch (e) {}
-
+    
+    // ... [overpass APIによる検索は長いためそのまま維持（省略せず）] ...
     if (dist <= 250000) {
       const pad = 0.12;
       const minLat = Math.min(depStation.lat, arrStation.lat) - pad;
@@ -1417,7 +1465,7 @@
 
   window.switchMainTab = function(tab) {
     window.currentMainTab = tab;
-    document.getElementById('searchContainer').classList.add('hidden'); // タブ切り替え時に検索バーを隠す
+    document.getElementById('searchContainer').classList.add('hidden');
 
     const considerPanel = document.getElementById('consider-panel');
     const timelinePanel = document.getElementById('timeline-panel');
@@ -1484,16 +1532,33 @@
       const pinBg = isConsider ? "#ef4444" : "#38bdf8";
       let iconHtml = `<div class="custom-pin ${ext}" style="background-color:${pinBg}; width:34px; height:34px; font-size:17px;">${spot.iconEmoji || '📍'}</div>`;
 
+      // ドラッグ&ドロップ移動の有効化 (draggable: true)
       let marker = L.marker([spot.lat, spot.lng], {
         icon: L.divIcon({ html: iconHtml, className: '', iconSize: [34,34], iconAnchor:[17,34] }),
-        zIndexOffset: isConsider ? 200 : 100
+        zIndexOffset: isConsider ? 200 : 100,
+        draggable: true
       }).addTo(window.map);
+      
+      // ピンをドラッグして位置を更新
+      marker.on('dragend', async function(e) {
+        const newPos = e.target.getLatLng();
+        if (confirm(`「${spot.name}」のピンをこの位置に移動しますか？\n(キャンセルすると元の位置に戻ります)`)) {
+          await updateDoc(doc(db, "pins", spot.id), {
+            lat: newPos.lat,
+            lng: newPos.lng
+          });
+        } else {
+          e.target.setLatLng([spot.lat, spot.lng]); // キャンセル時は元の位置に戻す
+        }
+      });
       
       let prioText = isConsider
         ? '💡 検討リスト'
         : (spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1)));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
-      let photoHtml = spot.photo ? `<img src="${spot.photo}" class="w-full max-h-28 object-cover rounded-lg my-1 border border-slate-200">` : '';
+      
+      // 写真拡大機能を追加
+      let photoHtml = spot.photo ? `<img src="${spot.photo}" onclick="openPhotoModal('${spot.photo}')" class="w-full max-h-28 object-cover rounded-lg my-1 border border-slate-200 cursor-pointer active:opacity-75 transition-opacity">` : '';
 
       const sameTimeList = window.spots.filter(s => !isConsiderSpot(s) && s.date === spot.date && s.time === spot.time);
       const orderLabel = (!isConsider && sameTimeList.length > 1) ? ` ${toCircledNum(sameTimeList.findIndex(s => s.id === spot.id) + 1)}` : '';
@@ -1577,7 +1642,9 @@
       const likes = Array.isArray(spot.likes) ? spot.likes : [];
       const iLiked = likes.includes(window.currentUser);
       const urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-600 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
-      const photoHtml = spot.photo ? `<img src="${spot.photo}" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs">` : '';
+      
+      // 写真拡大機能を追加
+      const photoHtml = spot.photo ? `<img src="${spot.photo}" onclick="openPhotoModal('${spot.photo}')" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs cursor-pointer active:opacity-75 transition-opacity">` : '';
 
       const likesBadges = likes.length > 0
         ? likes.map(u => `<span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">👍 ${u}</span>`).join(' ')
@@ -1730,7 +1797,9 @@
 
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1) + '☆'.repeat(3-(spot.priority||1)));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
-      let photoHtml = spot.photo ? `<img src="${spot.photo}" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs">` : '';
+      
+      // 写真拡大機能を追加
+      let photoHtml = spot.photo ? `<img src="${spot.photo}" onclick="openPhotoModal('${spot.photo}')" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs cursor-pointer active:opacity-75 transition-opacity">` : '';
       
       let evalsHtml = "";
       if (Array.isArray(spot.evaluations) && spot.evaluations.length > 0) {
