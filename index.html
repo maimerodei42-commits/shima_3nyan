@@ -44,12 +44,12 @@
     padding-top: var(--sat);
     transition: opacity 0.2s ease, visibility 0.2s ease;
   }
-  .panel-hidden { display: none !important; opacity: 0; pointer-events: none; }
+  .panel-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
   .panel-visible { opacity: 1; visibility: visible; pointer-events: auto; }
   #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; padding-bottom: var(--sab); }
 
   /* ピンのスタイル */
-  .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.28); border: 2.5px solid white; cursor: move; }
+  .custom-pin { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.28); border: 2.5px solid white; }
   .pin-done { background-color: #f472b6 !important; border-color: #fbcfe8 !important; opacity: 0.92; } 
   .pin-cancel { background-color: #cbd5e1 !important; opacity: 0.4; text-decoration: line-through; }
 
@@ -180,22 +180,30 @@
 <div id="ui-layer">
   <div class="p-3 space-y-2 pointer-events-auto w-full box-border">
     <header class="bg-white/90 backdrop-blur-md border-b border-sky-100 shadow-sm rounded-2xl px-3 py-2 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🍋</span>
-        <h1 class="text-base font-extrabold text-sky-600 m-0">しまねこトリオ 🐾</h1>
-        <span id="currentUserBadge" class="text-[10px] bg-sky-100 text-sky-700 font-bold px-2 py-0.5 rounded-full">未選択</span>
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="text-xl shrink-0">🍋</span>
+        <h1 class="text-sm sm:text-base font-extrabold text-sky-600 m-0 truncate">しまねこトリオ 🐾</h1>
+        <span id="currentUserBadge" class="text-[10px] bg-sky-100 text-sky-700 font-bold px-2 py-0.5 rounded-full shrink-0">未選択</span>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="btnSearchToggle" onclick="toggleSearch()" class="w-8 h-8 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center border border-sky-100 active:scale-95 transition">
+      <div class="flex items-center gap-1 shrink-0">
+        <button id="btnSearchToggle" onclick="toggleSearch()" title="場所を検索" class="w-8 h-8 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center border border-sky-100 active:scale-95 transition">
           <i data-lucide="search" class="w-4 h-4"></i>
         </button>
-        <button onclick="openAddModal()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition flex items-center gap-1">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i><span>予定の追加</span>
+        <button onclick="openAddModal()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shadow-sm transition flex items-center gap-1">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i><span>追加</span>
+        </button>
+        <!-- 使い方ガイドボタン（画像図解付き） -->
+        <button onclick="openGuideModal()" title="使い方・機能ガイド" class="w-8 h-8 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-full flex items-center justify-center border border-amber-200 active:scale-95 transition">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </button>
+        <!-- 控えめな三本線メニュー（更新ログ履歴） -->
+        <button onclick="openLogModal()" aria-label="メニュー" class="w-8 h-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full flex items-center justify-center active:scale-95 transition">
+          <i data-lucide="menu" class="w-4 h-4"></i>
         </button>
       </div>
     </header>
 
-    <!-- グルメカウンター -->
+    <!-- グルメカウンター（項目追加・編集可能） -->
     <div class="bg-white/90 backdrop-blur shadow-sm rounded-xl p-2 flex items-center gap-2 border border-orange-100">
       <div id="foodCounterItems" class="flex gap-3 overflow-x-auto hide-scrollbar flex-1 items-center"></div>
       <button onclick="openFoodManageModal()" title="食べ物リストの追加・編集" class="shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 rounded-lg px-2 py-1 text-[10px] font-extrabold flex items-center gap-1 active:scale-95 transition">
@@ -213,7 +221,7 @@
     </div>
   </div>
 
-  <!-- マップ左下＆右下 -->
+  <!-- マップ左下：凡例 & 表示中ルート日付バッジ / 右下：操作ボタン -->
   <div class="p-4 flex items-end justify-between pointer-events-none pb-4 w-full box-border">
     <div class="flex flex-col gap-1.5 pointer-events-auto">
       <div class="bg-white/95 backdrop-blur px-2.5 py-1 rounded-full shadow-sm border border-slate-100 text-[10px] font-bold text-slate-600 flex items-center gap-2">
@@ -232,7 +240,7 @@
   </div>
 </div>
 
-<!-- 左タブ：検討リストパネル -->
+<!-- 左タブ：検討リストパネル（未定・候補スポットの取捨選択用） -->
 <div id="consider-panel" class="sub-panel flex flex-col panel-hidden border-t border-rose-200">
   <div class="p-4 bg-gradient-to-r from-rose-50 via-amber-50 to-orange-50 shadow-sm z-10 shrink-0 border-b border-rose-100">
     <div class="flex items-center justify-between mb-2">
@@ -242,10 +250,19 @@
         </h2>
         <p class="text-[10px] text-slate-500 m-0">「検討リストへ！」のスポット（地図では赤色ピン🔴）を3人で取捨選択</p>
       </div>
-      <button onclick="openAddConsiderModal()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1 active:scale-95 transition shrink-0">
-        <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>候補追加</span>
-      </button>
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="openAddConsiderModal()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1 active:scale-95 transition">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>候補追加</span>
+        </button>
+        <button onclick="openGuideModal()" title="使い方ガイド" class="w-8 h-8 bg-amber-50 text-amber-600 border border-amber-200 rounded-full flex items-center justify-center">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </button>
+        <button onclick="openLogModal()" aria-label="メニュー" class="w-8 h-8 text-slate-400 hover:text-slate-600 rounded-full flex items-center justify-center">
+          <i data-lucide="menu" class="w-4 h-4"></i>
+        </button>
+      </div>
     </div>
+    <!-- 絞り込みフィルター -->
     <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pt-1" id="considerFilterContainer">
       <button onclick="setConsiderFilter('all')" class="consider-filter-btn bg-rose-500 text-white rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="all">すべて</button>
       <button onclick="setConsiderFilter('gourmet')" class="consider-filter-btn bg-white text-slate-600 border border-rose-200 rounded-full px-3 py-1 text-[11px] font-bold shrink-0" data-filter="gourmet">🍽️ ご飯・カフェ</button>
@@ -256,13 +273,21 @@
   <div id="considerTimelineList" class="p-4 overflow-y-auto flex-1 space-y-3 pb-12 scroll-smooth"></div>
 </div>
 
-<!-- 右タブ：みちのりタイムラインパネル -->
+<!-- 右タブ：みちのりタイムラインパネル（予約済み〜★1のみ） -->
 <div id="timeline-panel" class="sub-panel flex flex-col panel-hidden border-t border-slate-200">
   <div class="p-4 bg-white shadow-sm z-10 shrink-0">
     <div class="flex items-center justify-between mb-3">
       <div>
         <h2 class="font-bold text-sky-700 text-base m-0 flex items-center gap-1.5"><i data-lucide="route" class="w-5 h-5"></i>📍 旅のみちのり順</h2>
         <p class="text-[10px] text-slate-400 m-0">予約済み〜★1の確定・本命ルート（同時間は①②で順番変更）</p>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="openGuideModal()" title="使い方ガイド" class="w-8 h-8 bg-amber-50 text-amber-600 border border-amber-200 rounded-full flex items-center justify-center">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </button>
+        <button onclick="openLogModal()" aria-label="メニュー" class="w-8 h-8 text-slate-400 hover:text-slate-600 rounded-full flex items-center justify-center">
+          <i data-lucide="menu" class="w-4 h-4"></i>
+        </button>
       </div>
     </div>
     <div class="flex gap-2 overflow-x-auto hide-scrollbar" id="tabContainer">
@@ -275,7 +300,7 @@
   <div id="routeTimelineList" class="p-4 overflow-y-auto flex-1 space-y-2 pb-12 scroll-smooth"></div>
 </div>
 
-<!-- 下部3タブナビゲーション -->
+<!-- 下部3タブナビゲーション：左「検討リスト」・中央「マップ」・右「みちのり」 -->
 <nav id="bottom-nav" class="bg-white shadow-[0_-2px_15px_rgba(0,0,0,0.06)] border-t border-sky-100 flex pointer-events-auto">
   <button onclick="switchMainTab('consider')" id="navBtnConsider" class="flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px] relative">
     <div class="relative">
@@ -294,6 +319,285 @@
   </button>
 </nav>
 
+<!-- 画像図解付き 網羅的機能ガイド モーダル -->
+<div id="guideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3600] hidden flex items-center justify-center p-3">
+  <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-5 relative max-h-[88vh] flex flex-col border-2 border-amber-100">
+    <button type="button" onclick="closeGuideModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+    
+    <div class="mb-3 shrink-0 pr-8">
+      <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full mb-1">
+        🐾 しまねこトリオ旅マップ 完全ガイド
+      </div>
+      <h3 class="text-base font-extrabold text-slate-800">このアプリの機能と使い方</h3>
+      <p class="text-[11px] text-slate-500">ありねこ・ことみねこ・あつきねこの3人でリアルタイムに同時編集できる旅のしおりマップです。</p>
+    </div>
+
+    <!-- 目次ジャンプチップ -->
+    <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-2 mb-2 border-b border-slate-100 shrink-0 text-[10px] font-bold">
+      <a href="#guide-sec-1" class="bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-1 rounded-full shrink-0">① 3つの画面</a>
+      <a href="#guide-sec-2" class="bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-1 rounded-full shrink-0">② ピン追加</a>
+      <a href="#guide-sec-3" class="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full shrink-0">③ 検討リスト</a>
+      <a href="#guide-sec-4" class="bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-1 rounded-full shrink-0">④ みちのり順</a>
+      <a href="#guide-sec-5" class="bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full shrink-0">⑤ 移動手段・線路</a>
+      <a href="#guide-sec-6" class="bg-orange-50 text-orange-700 border border-orange-200 px-2.5 py-1 rounded-full shrink-0">⑥ グルメ・評価</a>
+      <a href="#guide-sec-7" class="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full shrink-0">⑦ 更新ログ</a>
+    </div>
+
+    <!-- スクロール本文 -->
+    <div class="overflow-y-auto flex-1 space-y-5 pr-1 text-xs leading-relaxed">
+
+      <!-- セクション1：3つのタブの役割 -->
+      <section id="guide-sec-1" class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+        <div class="font-extrabold text-sm text-sky-700 flex items-center gap-1.5">
+          <span class="bg-sky-600 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">1</span>
+          画面下の3つのタブの使い分け
+        </div>
+
+        <!-- 図解イラスト1：下部ナビ＆ピンの色分け -->
+        <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs">
+          <svg viewBox="0 0 320 115" class="w-full h-auto">
+            <!-- マップ背景 -->
+            <rect x="8" y="6" width="304" height="62" rx="10" fill="#e0f2fe" stroke="#bae6fd"/>
+            <path d="M20 52 Q95 25 160 40 T300 22" fill="none" stroke="#0284c7" stroke-width="3" stroke-dasharray="5,4"/>
+            <!-- 水色ピン -->
+            <circle cx="85" cy="34" r="13" fill="#38bdf8" stroke="white" stroke-width="2"/>
+            <text x="85" y="39" text-anchor="middle" font-size="13">🚴</text>
+            <text x="85" y="58" text-anchor="middle" font-size="8" font-weight="bold" fill="#0369a1">確定ルート(水色)</text>
+            <!-- 赤色ピン -->
+            <circle cx="225" cy="28" r="13" fill="#ef4444" stroke="white" stroke-width="2"/>
+            <text x="225" y="33" text-anchor="middle" font-size="13">🦪</text>
+            <text x="225" y="53" text-anchor="middle" font-size="8" font-weight="bold" fill="#b91c1c">検討候補(赤色)</text>
+            <!-- 下部3タブバー -->
+            <rect x="8" y="74" width="304" height="34" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+            <rect x="12" y="77" width="96" height="28" rx="6" fill="#ffe4e6"/>
+            <text x="60" y="94" text-anchor="middle" font-size="9" font-weight="bold" fill="#e11d48">✨ 検討リスト</text>
+            <rect x="112" y="77" width="96" height="28" rx="6" fill="#e0f2fe"/>
+            <text x="160" y="94" text-anchor="middle" font-size="9" font-weight="bold" fill="#0284c7">🗺️ マップ</text>
+            <rect x="212" y="77" width="96" height="28" rx="6" fill="#f1f5f9"/>
+            <text x="260" y="94" text-anchor="middle" font-size="9" font-weight="bold" fill="#334155">🛤️ みちのり</text>
+          </svg>
+        </div>
+
+        <ul class="space-y-1.5 text-[11px] text-slate-600">
+          <li><strong class="text-rose-600">① 左「検討リスト」：</strong>「まだ行くか未定・3人で相談したい候補（ご飯屋やカフェなど）」を入れて取捨選択する画面です。</li>
+          <li><strong class="text-sky-600">② 中央「マップ」：</strong>全てのピンを地図で俯瞰します。<span class="text-rose-500 font-bold">赤色ピン＝検討リスト</span>、<span class="text-sky-500 font-bold">水色ピン＝みちのり確定</span>、<span class="text-pink-500 font-bold">ピンクピン＝✓行った済み</span>です。</li>
+          <li><strong class="text-slate-800">③ 右「みちのり」：</strong>採用された本命スポットだけが時間順に並び、移動ルート線や距離・所要時間が自動計算されます。</li>
+        </ul>
+      </section>
+
+      <!-- セクション2：スポットの追加・写真・URL -->
+      <section id="guide-sec-2" class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+        <div class="font-extrabold text-sm text-sky-700 flex items-center gap-1.5">
+          <span class="bg-sky-600 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">2</span>
+          スポットの追加方法（3通り）＆写真・URL添付
+        </div>
+
+        <!-- 図解イラスト2：3つの追加入り口 -->
+        <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs">
+          <svg viewBox="0 0 320 92" class="w-full h-auto">
+            <rect x="6" y="8" width="96" height="76" rx="10" fill="#f0f9ff" stroke="#7dd3fc"/>
+            <text x="54" y="32" text-anchor="middle" font-size="18">👆🗺️</text>
+            <text x="54" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">地図を直接タップ</text>
+            <text x="54" y="64" text-anchor="middle" font-size="7.5" fill="#64748b">タップした地点に</text>
+            <text x="54" y="74" text-anchor="middle" font-size="7.5" fill="#64748b">そのままピン作成</text>
+
+            <rect x="112" y="8" width="96" height="76" rx="10" fill="#f0f9ff" stroke="#7dd3fc"/>
+            <text x="160" y="32" text-anchor="middle" font-size="18">🔍🏢</text>
+            <text x="160" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">虫眼鏡で地名検索</text>
+            <text x="160" y="64" text-anchor="middle" font-size="7.5" fill="#64748b">施設名を入力して</text>
+            <text x="160" y="74" text-anchor="middle" font-size="7.5" fill="#64748b">「ピンを打つ」</text>
+
+            <rect x="218" y="8" width="96" height="76" rx="10" fill="#fff1f2" stroke="#fda4af"/>
+            <text x="266" y="32" text-anchor="middle" font-size="18">➕💡</text>
+            <text x="266" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#be123c">「追加 / 候補追加」</text>
+            <text x="266" y="64" text-anchor="middle" font-size="7.5" fill="#64748b">右上ボタンから</text>
+            <text x="266" y="74" text-anchor="middle" font-size="7.5" fill="#64748b">詳細を入力して保存</text>
+          </svg>
+        </div>
+
+        <ul class="space-y-1 text-[11px] text-slate-600">
+          <li>• <strong>行きたい度：</strong>登録時に<strong>「💡 検討リストへ！」</strong>を選ぶと赤ピン＆検討リストへ、<strong>「✅ 予約済み / ★★★〜★☆☆」</strong>を選ぶと水色ピン＆みちのりへ入ります。</li>
+          <li>• <strong>写真＆複数URL：</strong>スマホの写真を添付すると自動で軽量リサイズして共有されます。参考URL（食べログ・Instagram等）は入力すると次の入力枠が自動で増えます。</li>
+        </ul>
+      </section>
+
+      <!-- セクション3：検討リストでの相談＆採用 -->
+      <section id="guide-sec-3" class="bg-rose-50/60 rounded-2xl p-3.5 border border-rose-200 space-y-2.5">
+        <div class="font-extrabold text-sm text-rose-600 flex items-center gap-1.5">
+          <span class="bg-rose-500 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">3</span>
+          検討リスト（赤ピン）での相談 ＆ みちのりへの採用
+        </div>
+
+        <!-- 図解イラスト3：いいね＆採用フロー -->
+        <div class="bg-white rounded-xl p-3 border border-rose-200 shadow-2xs">
+          <svg viewBox="0 0 320 86" class="w-full h-auto">
+            <rect x="8" y="10" width="136" height="66" rx="10" fill="#fff1f2" stroke="#fecdd3"/>
+            <text x="76" y="28" text-anchor="middle" font-size="9" font-weight="bold" fill="#be123c">🔴 候補：尾道ラーメン店</text>
+            <rect x="18" y="38" width="54" height="22" rx="6" fill="#fbbf24"/>
+            <text x="45" y="52" text-anchor="middle" font-size="8" font-weight="bold" fill="white">👍 行きたい(3)</text>
+            <rect x="78" y="38" width="58" height="22" rx="6" fill="#0ea5e9"/>
+            <text x="107" y="52" text-anchor="middle" font-size="8" font-weight="bold" fill="white">✨ 採用する</text>
+
+            <path d="M150 43 L174 43" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow)"/>
+            <defs>
+              <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#0284c7"/>
+              </marker>
+            </defs>
+
+            <rect x="180" y="10" width="132" height="66" rx="10" fill="#f0f9ff" stroke="#7dd3fc"/>
+            <text x="246" y="30" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">🔵 みちのりに決定！</text>
+            <text x="246" y="46" text-anchor="middle" font-size="8" fill="#334155">日付・時間・★を選んで</text>
+            <text x="246" y="59" text-anchor="middle" font-size="8" fill="#0284c7" font-weight="bold">ルート線に自動合流</text>
+          </svg>
+        </div>
+
+        <ul class="space-y-1 text-[11px] text-slate-600">
+          <li>• <strong>ジャンル絞り込み：</strong>上部の「すべて / 🍽️ ご飯・カフェ / 🚴 観光 / 🏨 宿」で候補を絞り込めます。</li>
+          <li>• <strong>👍 行きたい！投票：</strong>各メンバーが「👍 行きたい！」を押すと名前バッジが付き、3人の人気度がひと目で分かります。</li>
+          <li>• <strong>✨ みちのりへ採用：</strong>決まったら「✨ みちのりへ採用」を押して日時と優先度を選ぶだけで本ルートへ移動します（逆に見直したい時はみちのり側の「💡 検討へ戻す」でいつでも戻せます）。</li>
+        </ul>
+      </section>
+
+      <!-- セクション4：みちのりタイムラインと同時間の順番変更 -->
+      <section id="guide-sec-4" class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+        <div class="font-extrabold text-sm text-sky-700 flex items-center gap-1.5">
+          <span class="bg-sky-600 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">4</span>
+          みちのりタイムライン ＆ 同じ時間の順番入れ替え（①②）
+        </div>
+
+        <!-- 図解イラスト4：同時間の①②と↑↓ボタン -->
+        <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs">
+          <svg viewBox="0 0 320 82" class="w-full h-auto">
+            <rect x="10" y="8" width="300" height="30" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+            <rect x="18" y="13" width="38" height="20" rx="10" fill="#e0f2fe"/>
+            <text x="37" y="26" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#0369a1">10:00</text>
+            <circle cx="66" cy="23" r="8" fill="#ffffff" stroke="#7dd3fc"/>
+            <text x="66" y="26" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#0369a1">①</text>
+            <rect x="78" y="14" width="32" height="18" rx="9" fill="#f0f9ff" stroke="#bae6fd"/>
+            <text x="94" y="26" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#0284c7">↑ ↓</text>
+            <text x="120" y="26" font-size="9" font-weight="bold" fill="#334155">🚉 今治駅に到着</text>
+
+            <rect x="10" y="44" width="300" height="30" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+            <rect x="18" y="49" width="38" height="20" rx="10" fill="#e0f2fe"/>
+            <text x="37" y="62" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#0369a1">10:00</text>
+            <circle cx="66" cy="59" r="8" fill="#ffffff" stroke="#7dd3fc"/>
+            <text x="66" y="62" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#0369a1">②</text>
+            <rect x="78" y="50" width="32" height="18" rx="9" fill="#f0f9ff" stroke="#bae6fd"/>
+            <text x="94" y="62" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#0284c7">↑ ↓</text>
+            <text x="120" y="62" font-size="9" font-weight="bold" fill="#334155">🚴 レンタサイクル受付</text>
+          </svg>
+        </div>
+
+        <ul class="space-y-1 text-[11px] text-slate-600">
+          <li>• <strong>日程タブ切り替え：</strong>11/30〜12/03のタブを切り替えると、その日のルート線だけがマップに描かれます。</li>
+          <li>• <strong>同じ時間の順番変更（①②）：</strong>同じ日付・同じ時刻に複数の予定がある場合、時間の横に<strong>「①」「②」と「↑ ↓」ボタン</strong>が自動出現します。タップするだけで順番と地図のルート線が即座に入れ替わります（編集画面からも①〜⑩を選択可能）。</li>
+        </ul>
+      </section>
+
+      <!-- セクション5：移動手段と電車の線路ルート -->
+      <section id="guide-sec-5" class="bg-purple-50/50 rounded-2xl p-3.5 border border-purple-200 space-y-2.5">
+        <div class="font-extrabold text-sm text-purple-700 flex items-center gap-1.5">
+          <span class="bg-purple-600 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">5</span>
+          スポット間の移動手段 ＆ 鉄道の線路ルート表示
+        </div>
+
+        <!-- 図解イラスト5：5つの移動手段チップ -->
+        <div class="bg-white rounded-xl p-3 border border-purple-200 shadow-2xs">
+          <svg viewBox="0 0 320 66" class="w-full h-auto">
+            <rect x="6" y="8" width="56" height="22" rx="11" fill="#fef3c7" stroke="#f59e0b"/>
+            <text x="34" y="22" text-anchor="middle" font-size="8" font-weight="bold" fill="#b45309">🚶 徒歩</text>
+
+            <rect x="68" y="8" width="60" height="22" rx="11" fill="#d1fae5" stroke="#10b981"/>
+            <text x="98" y="22" text-anchor="middle" font-size="8" font-weight="bold" fill="#047857">🚲 自転車</text>
+
+            <rect x="134" y="8" width="66" height="22" rx="11" fill="#7c3aed"/>
+            <text x="167" y="22" text-anchor="middle" font-size="8" font-weight="bold" fill="white">🚃 電車・バス</text>
+
+            <rect x="206" y="8" width="56" height="22" rx="11" fill="#dbeafe" stroke="#3b82f6"/>
+            <text x="234" y="22" text-anchor="middle" font-size="8" font-weight="bold" fill="#1d4ed8">🚗 車</text>
+
+            <rect x="268" y="8" width="46" height="22" rx="11" fill="#fce7f3" stroke="#ec4899"/>
+            <text x="291" y="22" text-anchor="middle" font-size="8" font-weight="bold" fill="#be185d">✈️ 飛行機</text>
+
+            <text x="160" y="48" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#6b21a8">🚃 選択時：発車駅・到着駅を検索すると線路の上だけに紫ルート線を描画！</text>
+            <text x="160" y="60" text-anchor="middle" font-size="7.5" fill="#64748b">徒歩・自転車・車は道路に沿った道のり距離と所要時間を自動計算</text>
+          </svg>
+        </div>
+      </section>
+
+      <!-- セクション6：行ったチェック＆グルメカウンター -->
+      <section id="guide-sec-6" class="bg-orange-50/60 rounded-2xl p-3.5 border border-orange-200 space-y-2.5">
+        <div class="font-extrabold text-sm text-orange-700 flex items-center gap-1.5">
+          <span class="bg-orange-500 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">6</span>
+          「✓ 行った」＆ 評価・グルメカウンター（項目追加・編集）
+        </div>
+
+        <!-- 図解イラスト6：グルメカウンターバー -->
+        <div class="bg-white rounded-xl p-3 border border-orange-200 shadow-2xs">
+          <svg viewBox="0 0 320 56" class="w-full h-auto">
+            <rect x="6" y="8" width="308" height="40" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+            <text x="42" y="32" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">🥞 2</text>
+            <text x="92" y="32" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">🦪 6</text>
+            <text x="142" y="32" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">🍁 3</text>
+            <text x="192" y="32" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">🍜 1</text>
+            <text x="236" y="32" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">🍋 4</text>
+            <rect x="262" y="15" width="44" height="26" rx="6" fill="#ffedd5" stroke="#fdba74"/>
+            <text x="284" y="31" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#c2410c">⚙️ 編集</text>
+          </svg>
+        </div>
+
+        <ul class="space-y-1 text-[11px] text-slate-600">
+          <li>• <strong>✓ 行った ＆ ⭐ 評価・記録：</strong>訪れた場所で「⭐ 評価・記録」を押すと、3人それぞれの★評価・感想・食べた個数を記録でき、画面上部のグルメカウンターに自動加算されます（自分の評価は後から更新・削除も可能）。</li>
+          <li>• <strong>グルメ項目の追加・編集：</strong>カウンター右端の<strong>「⚙️ 編集」</strong>から、ジェラートやみかんなど新しい食べ物を追加したり、名前・絵文字を編集したりできます。</li>
+        </ul>
+      </section>
+
+      <!-- セクション7：三本線メニューの更新ログ -->
+      <section id="guide-sec-7" class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-1.5">
+        <div class="font-extrabold text-sm text-slate-700 flex items-center gap-1.5">
+          <span class="bg-slate-600 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px]">7</span>
+          三本線メニュー（≡）の更新ログ履歴
+        </div>
+        <p class="text-[11px] text-slate-600">
+          画面右上の<strong>「≡（三本線）」</strong>をタップすると、「いつ・誰が（ありねこ／ことみねこ／あつきねこ）・どのスポットを追加・編集・採用・評価・写真変更したか」の操作履歴をいつでも確認できます。
+        </p>
+      </section>
+
+    </div>
+
+    <div class="pt-3 mt-2 border-t border-slate-100 shrink-0">
+      <button type="button" onclick="closeGuideModal()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-sm">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 三本線メニュー：更新ログ履歴モーダル -->
+<div id="logModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3500] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-5 relative max-h-[82vh] flex flex-col border border-slate-200">
+    <button type="button" onclick="closeLogModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <div class="mb-3 shrink-0 flex items-center justify-between pr-7">
+      <div>
+        <h3 class="text-base font-extrabold text-slate-700 flex items-center gap-1.5">
+          <i data-lucide="history" class="w-4 h-4 text-sky-500"></i> 更新ログ履歴
+        </h3>
+        <p class="text-[10px] text-slate-400 mt-0.5">追加・編集・評価・写真変更などの操作履歴（最新80件）</p>
+      </div>
+      <button type="button" onclick="closeLogModal(); openGuideModal();" class="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold px-2.5 py-1 rounded-full shrink-0">
+        ？ 使い方
+      </button>
+    </div>
+
+    <div id="activityLogList" class="overflow-y-auto flex-1 space-y-2 pr-1 text-xs">
+      <div class="text-center py-8 text-slate-400">読み込み中...</div>
+    </div>
+
+    <div class="pt-3 mt-2 border-t border-slate-100 shrink-0">
+      <button type="button" onclick="closeLogModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- 追加/編集 モーダル -->
 <div id="spotModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-5 relative max-h-[85vh] overflow-y-auto border border-sky-100">
@@ -301,29 +605,6 @@
     <h3 id="modalTitle" class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-sky-500"></i>場所を追加</h3>
     
     <form id="spotForm" onsubmit="saveSpot(event)" class="space-y-3 text-xs">
-      
-      <!-- ▼ 座標修正機能 UI -->
-      <div class="bg-sky-50/70 p-2.5 rounded-xl border border-sky-100 mb-4 space-y-3">
-        <div>
-          <label class="block font-bold text-sky-700 mb-1">🔍 場所を再検索してピンを移動</label>
-          <div class="flex gap-1.5">
-            <input type="text" id="editSpotSearchInput" placeholder="施設名や地名を検索..." class="flex-1 border border-sky-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400 text-xs">
-            <button type="button" onclick="searchEditSpotLocation()" class="bg-sky-500 hover:bg-sky-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
-          </div>
-          <ul id="editSpotSearchResults" class="divide-y divide-sky-100 bg-white rounded-xl max-h-28 overflow-y-auto text-xs mt-1 shadow-xs hidden"></ul>
-        </div>
-        
-        <!-- 追加: 中心座標セットボタン -->
-        <div class="border-t border-sky-200/60 pt-2">
-          <label class="block font-bold text-sky-700 mb-1 text-[10px]">💡 または、地図を動かして中心に合わせる</label>
-          <button type="button" onclick="setSpotLocationToMapCenter()" class="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition">
-            <i data-lucide="crosshair" class="w-4 h-4"></i> 現在の地図の中央座標をセット
-          </button>
-        </div>
-        
-        <p id="editSpotLocationSuccess" class="text-[10px] font-bold text-emerald-600 hidden mt-1 text-center">✓ 新しい場所（緯度・経度）をセットしました！</p>
-      </div>
-
       <input type="hidden" id="editSpotId">
       <input type="hidden" id="spotLat">
       <input type="hidden" id="spotLng">
@@ -361,6 +642,7 @@
         <p id="priorityHelpText" class="text-[10px] text-rose-500 font-bold mt-1 hidden">※ 赤ピンで地図に表示され、左の「検討リスト」に入ります</p>
       </div>
 
+      <!-- 日付・時間・同時間内の順番（①②③） -->
       <div class="grid grid-cols-3 gap-2">
         <div>
           <label class="block font-bold text-slate-600 mb-1">日付（目安）</label>
@@ -420,13 +702,6 @@
       </div>
     </form>
   </div>
-</div>
-
-<!-- 写真拡大（Lightbox）モーダル -->
-<div id="photoModal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[9999] hidden flex flex-col items-center justify-center p-4 transition-opacity duration-300" onclick="closePhotoModal()">
-  <button type="button" onclick="closePhotoModal()" class="absolute right-4 text-white p-2 bg-slate-800/60 rounded-full hover:bg-slate-700/60 transition shadow-lg" style="top: calc(16px + var(--sat));"><i data-lucide="x" class="w-6 h-6"></i></button>
-  <img id="photoModalImg" src="" class="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl pointer-events-auto" onclick="event.stopPropagation();">
-  <p class="text-white/90 text-xs font-bold mt-5 pointer-events-auto bg-slate-800/50 px-4 py-2 rounded-full backdrop-blur-sm shadow-md flex items-center gap-1.5"><i data-lucide="download" class="w-4 h-4"></i>画像を長押しで保存・共有できます</p>
 </div>
 
 <!-- 検討リストから「みちのり」へ採用モーダル -->
@@ -502,48 +777,47 @@
   </div>
 </div>
 
-<!-- 駅・バス停選択 モーダル -->
-<div id="transitModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative border border-slate-200">
-    <button type="button" onclick="closeTransitModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
-    <h3 id="transitModalTitle" class="text-base font-bold text-slate-700 mb-1 flex items-center gap-1.5">乗車・降車を選択</h3>
-    <p id="transitModalDesc" class="text-[11px] text-slate-500 mb-3"></p>
+<!-- 駅選択（発車駅・到着駅）モーダル -->
+<div id="stationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-5 relative border border-purple-100">
+    <button type="button" onclick="closeStationModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <h3 class="text-base font-bold text-purple-700 mb-1 flex items-center gap-1.5">🚃 発車駅・到着駅を選択</h3>
+    <p class="text-[11px] text-slate-500 mb-3">この区間は線路の上のみにルート線を引きます。</p>
     
-    <form onsubmit="saveTransitRoute(event)" class="space-y-3 text-xs">
-      <input type="hidden" id="transitSpotId">
-      <input type="hidden" id="transitMode">
+    <form onsubmit="saveStationRoute(event)" class="space-y-3 text-xs">
+      <input type="hidden" id="stationSpotId">
       
-      <!-- 発車 -->
-      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
-        <label id="depTransitLabel" class="block font-bold text-slate-700">発車地</label>
+      <!-- 発車駅 -->
+      <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1.5">
+        <label class="block font-bold text-purple-800">🚉 発車駅</label>
         <div class="flex gap-1.5">
-          <input type="text" id="depTransitInput" placeholder="例: 広島駅、尾道駅..." class="flex-1 border rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400">
-          <button type="button" onclick="searchTransit('dep')" class="bg-slate-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+          <input type="text" id="depStationInput" placeholder="例: 広島駅、尾道駅..." class="flex-1 border border-purple-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-purple-400">
+          <button type="button" onclick="searchStation('dep')" class="bg-purple-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
         </div>
-        <ul id="depTransitResults" class="divide-y divide-slate-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs hidden"></ul>
-        <p id="depTransitSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
-        <input type="hidden" id="depTransitLat">
-        <input type="hidden" id="depTransitLng">
-        <input type="hidden" id="depTransitName">
+        <ul id="depStationResults" class="divide-y divide-purple-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs"></ul>
+        <p id="depStationSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
+        <input type="hidden" id="depStationLat">
+        <input type="hidden" id="depStationLng">
+        <input type="hidden" id="depStationName">
       </div>
 
-      <!-- 到着 -->
-      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
-        <label id="arrTransitLabel" class="block font-bold text-slate-700">到着地</label>
+      <!-- 到着駅 -->
+      <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1.5">
+        <label class="block font-bold text-purple-800">🏁 到着駅</label>
         <div class="flex gap-1.5">
-          <input type="text" id="arrTransitInput" placeholder="例: 宮島口..." class="flex-1 border rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-sky-400">
-          <button type="button" onclick="searchTransit('arr')" class="bg-slate-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
+          <input type="text" id="arrStationInput" placeholder="例: 宮島口駅、今治駅..." class="flex-1 border border-purple-200 rounded-xl p-2 bg-white outline-none focus:ring-2 focus:ring-purple-400">
+          <button type="button" onclick="searchStation('arr')" class="bg-purple-600 text-white px-3 rounded-xl font-bold shrink-0">検索</button>
         </div>
-        <ul id="arrTransitResults" class="divide-y divide-slate-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs hidden"></ul>
-        <p id="arrTransitSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
-        <input type="hidden" id="arrTransitLat">
-        <input type="hidden" id="arrTransitLng">
-        <input type="hidden" id="arrTransitName">
+        <ul id="arrStationResults" class="divide-y divide-purple-100 bg-white rounded-xl max-h-28 overflow-y-auto text-[11px] shadow-xs"></ul>
+        <p id="arrStationSelectedLabel" class="text-[11px] font-bold text-emerald-600 hidden"></p>
+        <input type="hidden" id="arrStationLat">
+        <input type="hidden" id="arrStationLng">
+        <input type="hidden" id="arrStationName">
       </div>
 
       <div class="flex gap-2 pt-1">
-        <button type="button" onclick="closeTransitModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">キャンセル</button>
-        <button type="submit" id="btnSaveTransit" class="w-2/3 py-2.5 rounded-xl bg-sky-600 text-white font-bold shadow-sm">ルートを確定</button>
+        <button type="button" onclick="closeStationModal()" class="w-1/3 py-2.5 rounded-xl border text-slate-600">キャンセル</button>
+        <button type="submit" id="btnSaveStation" class="w-2/3 py-2.5 rounded-xl bg-purple-600 text-white font-bold shadow-sm">線路ルートを確定</button>
       </div>
     </form>
   </div>
@@ -600,7 +874,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC7DjN_QqUtMRhQNjWLg6aam2KUqh0CeV0",
@@ -610,7 +884,10 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const pinsCollection = collection(db, "pins");
+  const logsCollection = collection(db, "logs");
+  const locationsCollection = collection(db, "locations");
   const q = query(pinsCollection, orderBy("sortTime", "asc"));
+  const logsQuery = query(logsCollection, orderBy("createdAt", "desc"), limit(80));
   const foodConfigDocRef = doc(db, "settings", "foodCategories");
 
   const DEFAULT_FOOD_CATEGORIES = [
@@ -627,6 +904,7 @@
   window.markers = [];
   window.routeLayers = [];
   window.spots = [];
+  window.activityLogs = [];
   window.currentDayTab = "11/30";
   window.currentMainTab = "map";
   window.considerFilter = "all";
@@ -634,11 +912,14 @@
   window.currentPhotoBase64 = null;
   window.routeRenderToken = 0;
 
-  // 現在地同期用の変数
+  window.locationPressCount = 0;
+  window.latestMyPosition = null;
   window.userLocationMarker = null;
   window.userLocationCircle = null;
   window.userWatchId = null;
-  window.shouldCenterOnUser = false;
+  window.lastLocationUploadMs = 0;
+  window.memberLocations = {};
+  window.memberLocationMarkers = {};
 
   const CIRCLED_NUMS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
   function toCircledNum(n) {
@@ -663,6 +944,39 @@
 
   function isConsiderSpot(spot) {
     return spot.priority === 'consider';
+  }
+
+  function formatNowTimestamp() {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+  }
+
+  function formatRelativeTime(tsMs) {
+    if (!tsMs) return '';
+    const diffSec = Math.max(0, Math.floor((Date.now() - tsMs) / 1000));
+    if (diffSec < 60) return 'たった今';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}分前`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}時間前`;
+    return `${Math.floor(diffHr / 24)}日前`;
+  }
+
+  async function recordActivityLog(action, spotName, detail = "") {
+    try {
+      await addDoc(logsCollection, {
+        user: window.currentUser || 'メンバー',
+        action: action,
+        spotName: spotName || '',
+        detail: detail || '',
+        timeLabel: formatNowTimestamp(),
+        createdAt: Date.now()
+      });
+    } catch (e) {}
   }
 
   function loadCache(storageKey) {
@@ -726,36 +1040,6 @@
     });
   };
 
-  // ----- 追加: 写真拡大（Lightbox）関連 -----
-  window.openPhotoModal = function(src) {
-    const photoModal = document.getElementById('photoModal');
-    const photoModalImg = document.getElementById('photoModalImg');
-    photoModalImg.src = src;
-    photoModal.classList.remove('hidden');
-    lucide.createIcons();
-  };
-  window.closePhotoModal = function() {
-    const photoModal = document.getElementById('photoModal');
-    const photoModalImg = document.getElementById('photoModalImg');
-    photoModal.classList.add('hidden');
-    photoModalImg.src = "";
-  };
-  // ------------------------------------------
-
-  // ----- 追加: マップ中心座標セット機能 -----
-  window.setSpotLocationToMapCenter = function() {
-    if(!window.map) return;
-    const center = window.map.getCenter();
-    document.getElementById('spotLat').value = center.lat;
-    document.getElementById('spotLng').value = center.lng;
-    
-    document.getElementById('editSpotSearchResults').classList.add('hidden');
-    const successMsg = document.getElementById('editSpotLocationSuccess');
-    successMsg.textContent = "✓ マップの中央座標をセットしました！";
-    successMsg.classList.remove('hidden');
-  };
-  // ------------------------------------------
-
   window.clearPhoto = function() {
     window.currentPhotoBase64 = null;
     document.getElementById('spotPhotoInput').value = "";
@@ -769,72 +1053,186 @@
     initMap(); 
   };
 
-  function startUserLocationTracking() {
-    if (!navigator.geolocation || !window.map) return;
+  // ガイドモーダル開閉
+  window.openGuideModal = function() {
+    document.getElementById('guideModal').classList.remove('hidden');
+    lucide.createIcons();
+  };
+  window.closeGuideModal = () => document.getElementById('guideModal').classList.add('hidden');
+
+  function renderMyLocationOnMap(flyToMe = false) {
+    if (!window.map || !window.latestMyPosition || window.locationPressCount < 1) return;
+
+    const { lat, lng, accuracy } = window.latestMyPosition;
+    const latlng = [lat, lng];
+
+    if (!window.userLocationCircle) {
+      window.userLocationCircle = L.circle(latlng, {
+        radius: accuracy,
+        color: '#0284c7',
+        weight: 1.5,
+        fillColor: '#38bdf8',
+        fillOpacity: 0.2,
+        interactive: false
+      }).addTo(window.map);
+    } else {
+      window.userLocationCircle.setLatLng(latlng);
+      window.userLocationCircle.setRadius(accuracy);
+    }
+
+    if (!window.userLocationMarker) {
+      const userIcon = L.divIcon({
+        html: `<div class="user-location-dot"></div>`,
+        className: '',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+      window.userLocationMarker = L.marker(latlng, {
+        icon: userIcon,
+        zIndexOffset: 1000
+      }).addTo(window.map);
+      window.userLocationMarker.bindPopup(`<div class="text-xs font-bold text-sky-700">📍 ${window.currentUser || 'あなた'}の現在地</div>`);
+    } else {
+      window.userLocationMarker.setLatLng(latlng);
+    }
+
+    if (flyToMe) {
+      window.map.flyTo(latlng, 15);
+    }
+  }
+
+  function renderOtherMembersLocations() {
+    if (!window.map) return;
+
+    if (window.locationPressCount < 3) {
+      Object.values(window.memberLocationMarkers).forEach(m => window.map.removeLayer(m));
+      window.memberLocationMarkers = {};
+      return;
+    }
+
+    const memberMeta = {
+      'ありねこ': { emoji: '😻', bg: '#fb7185' },
+      'ことみねこ': { emoji: '😺', bg: '#2dd4bf' },
+      'あつきねこ': { emoji: '😽', bg: '#6366f1' }
+    };
+
+    const activeNames = new Set();
+
+    Object.entries(window.memberLocations).forEach(([name, loc]) => {
+      if (name === window.currentUser) return;
+      if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
+
+      activeNames.add(name);
+      const meta = memberMeta[name] || { emoji: '🐱', bg: '#0ea5e9' };
+      const rel = formatRelativeTime(loc.updatedAt);
+      const html = `
+        <div style="display:flex;flex-direction:column;align-items:center;transform:translateY(-8px);">
+          <div style="background:${meta.bg};color:white;border:2.5px solid white;border-radius:9999px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+            ${meta.emoji}
+          </div>
+          <div style="background:rgba(255,255,255,0.95);color:#1e293b;font-size:9px;font-weight:800;padding:1px 6px;border-radius:9999px;border:1px solid #cbd5e1;white-space:nowrap;margin-top:2px;box-shadow:0 2px 4px rgba(0,0,0,0.12);">
+            ${name}${rel ? ` (${rel})` : ''}
+          </div>
+        </div>`;
+
+      const icon = L.divIcon({
+        html,
+        className: '',
+        iconSize: [70, 52],
+        iconAnchor: [35, 26]
+      });
+
+      const popupText = `<div class="text-xs font-bold text-slate-700">${meta.emoji} ${name}<div class="text-[10px] text-slate-400 font-normal mt-0.5">更新: ${loc.timeLabel || ''} (${rel})</div></div>`;
+
+      if (window.memberLocationMarkers[name]) {
+        window.memberLocationMarkers[name].setLatLng([loc.lat, loc.lng]);
+        window.memberLocationMarkers[name].setIcon(icon);
+        window.memberLocationMarkers[name].setPopupContent(popupText);
+      } else {
+        const marker = L.marker([loc.lat, loc.lng], { icon, zIndexOffset: 950 }).addTo(window.map);
+        marker.bindPopup(popupText);
+        window.memberLocationMarkers[name] = marker;
+      }
+    });
+
+    Object.keys(window.memberLocationMarkers).forEach(name => {
+      if (!activeNames.has(name)) {
+        window.map.removeLayer(window.memberLocationMarkers[name]);
+        delete window.memberLocationMarkers[name];
+      }
+    });
+  }
+
+  function startBackgroundLocationSync() {
+    if (!navigator.geolocation) return;
 
     if (window.userWatchId !== null) {
       navigator.geolocation.clearWatch(window.userWatchId);
     }
 
     window.userWatchId = navigator.geolocation.watchPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const accuracy = Math.min(pos.coords.accuracy || 30, 300);
-        const latlng = [lat, lng];
 
-        if (!window.userLocationCircle) {
-          window.userLocationCircle = L.circle(latlng, {
-            radius: accuracy,
-            color: '#0284c7',
-            weight: 1.5,
-            fillColor: '#38bdf8',
-            fillOpacity: 0.2,
-            interactive: false
-          }).addTo(window.map);
-        } else {
-          window.userLocationCircle.setLatLng(latlng);
-          window.userLocationCircle.setRadius(accuracy);
+        window.latestMyPosition = { lat, lng, accuracy };
+
+        if (window.locationPressCount >= 1) {
+          renderMyLocationOnMap(false);
         }
 
-        if (!window.userLocationMarker) {
-          const userIcon = L.divIcon({
-            html: `<div class="user-location-dot"></div>`,
-            className: '',
-            iconSize: [18, 18],
-            iconAnchor: [9, 9]
-          });
-          window.userLocationMarker = L.marker(latlng, {
-            icon: userIcon,
-            zIndexOffset: 1000
-          }).addTo(window.map);
-          window.userLocationMarker.bindPopup(`<div class="text-xs font-bold text-sky-700">📍 ${window.currentUser || 'あなた'}の現在地</div>`);
-        } else {
-          window.userLocationMarker.setLatLng(latlng);
-        }
-
-        if (window.shouldCenterOnUser) {
-          window.map.flyTo(latlng, 15);
-          window.shouldCenterOnUser = false;
+        const now = Date.now();
+        if (window.currentUser && now - window.lastLocationUploadMs > 5000) {
+          window.lastLocationUploadMs = now;
+          try {
+            await setDoc(doc(locationsCollection, window.currentUser), {
+              user: window.currentUser,
+              lat,
+              lng,
+              accuracy,
+              timeLabel: formatNowTimestamp(),
+              updatedAt: now
+            });
+          } catch (e) {}
         }
       },
       () => {},
       {
         enableHighAccuracy: true,
         maximumAge: 3000,
-        timeout: 10000
+        timeout: 15000
       }
     );
   }
 
   window.locateUser = function() {
-    if (!navigator.geolocation) return;
-    window.shouldCenterOnUser = true;
-    if (window.userLocationMarker) {
-      window.map.flyTo(window.userLocationMarker.getLatLng(), 15);
-      window.shouldCenterOnUser = false;
+    window.locationPressCount += 1;
+
+    if (!window.userWatchId) {
+      startBackgroundLocationSync();
     }
-    startUserLocationTracking();
+
+    if (window.latestMyPosition) {
+      renderMyLocationOnMap(true);
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          window.latestMyPosition = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: Math.min(pos.coords.accuracy || 30, 300)
+          };
+          renderMyLocationOnMap(true);
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    if (window.locationPressCount >= 3) {
+      renderOtherMembersLocations();
+    }
   };
 
   function recalculateAndRenderFoodCounters() {
@@ -854,6 +1252,7 @@
         }
       }
     });
+
     renderFoodCounterBar(totals);
   }
 
@@ -890,7 +1289,29 @@
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { maxZoom: 18, className: 'pale-map-tiles' }).addTo(window.map);
     window.map.on('click', e => openAddModal(e.latlng.lat, e.latlng.lng));
 
-    startUserLocationTracking();
+    startBackgroundLocationSync();
+
+    onSnapshot(locationsCollection, (snap) => {
+      const locs = {};
+      snap.forEach(d => {
+        locs[d.id] = d.data();
+      });
+      window.memberLocations = locs;
+      if (window.locationPressCount >= 3) {
+        renderOtherMembersLocations();
+      }
+    });
+
+    onSnapshot(logsQuery, (snap) => {
+      const logs = [];
+      snap.forEach(d => {
+        logs.push({ id: d.id, ...d.data() });
+      });
+      window.activityLogs = logs;
+      if (!document.getElementById('logModal').classList.contains('hidden')) {
+        renderActivityLogs();
+      }
+    });
 
     onSnapshot(foodConfigDocRef, (docSnap) => {
       if (docSnap.exists() && Array.isArray(docSnap.data().items) && docSnap.data().items.length > 0) {
@@ -913,6 +1334,7 @@
       });
 
       window.spots.sort((a, b) => (a.sortTime || 0) - (b.sortTime || 0));
+
       recalculateAndRenderFoodCounters();
 
       const considerCount = window.spots.filter(s => isConsiderSpot(s)).length;
@@ -944,6 +1366,39 @@
       renderRouteTimeline();
       renderConsiderTimeline();
     });
+  }
+
+  window.openLogModal = function() {
+    renderActivityLogs();
+    document.getElementById('logModal').classList.remove('hidden');
+    lucide.createIcons();
+  };
+
+  window.closeLogModal = () => document.getElementById('logModal').classList.add('hidden');
+
+  function renderActivityLogs() {
+    const listEl = document.getElementById('activityLogList');
+    if (!listEl) return;
+
+    if (window.activityLogs.length === 0) {
+      listEl.innerHTML = `<div class="text-center py-10 text-slate-400">まだ更新ログはありません</div>`;
+      return;
+    }
+
+    listEl.innerHTML = window.activityLogs.map(log => {
+      const st = getUserStyle(log.user);
+      return `
+      <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1">
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full border bg-white ${st.badge}">🐱 ${log.user || 'メンバー'}</span>
+          <span class="text-[10px] font-bold text-slate-400">${log.timeLabel || ''}</span>
+        </div>
+        <div class="text-slate-700 font-bold leading-snug">
+          ${log.action}${log.spotName ? `：<span class="text-sky-700">${log.spotName}</span>` : ''}
+        </div>
+        ${log.detail ? `<div class="text-[11px] text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-100 leading-relaxed">${log.detail}</div>` : ''}
+      </div>`;
+    }).join('');
   }
 
   function calcStraightDistance(lat1, lon1, lat2, lon2) {
@@ -986,6 +1441,7 @@
     if (window.railCache[cacheKey] && window.railCache[cacheKey].isRail) {
       return window.railCache[cacheKey];
     }
+
     const dist = calcStraightDistance(depStation.lat, depStation.lng, arrStation.lat, arrStation.lng);
 
     try {
@@ -1010,8 +1466,7 @@
         }
       }
     } catch (e) {}
-    
-    // ... [overpass APIによる検索は長いためそのまま維持（省略せず）] ...
+
     if (dist <= 250000) {
       const pad = 0.12;
       const minLat = Math.min(depStation.lat, arrStation.lat) - pad;
@@ -1129,11 +1584,12 @@
         } catch (e) {}
       }
     }
+
     return { coords: [[depStation.lat, depStation.lng], [arrStation.lat, arrStation.lng]], distance: dist, isRail: false };
   }
 
-  async function fetchRouteSegment(spotA, spotB, overrideMode = null) {
-    const mode = overrideMode ? overrideMode.transportToNext : (spotA.transportToNext || 'car');
+  async function fetchRouteSegment(spotA, spotB) {
+    const mode = spotA.transportToNext || 'car';
     const cacheKey = `${spotA.lat.toFixed(5)},${spotA.lng.toFixed(5)}_${spotB.lat.toFixed(5)},${spotB.lng.toFixed(5)}_${mode}`;
     
     if (window.routeCache[cacheKey]) {
@@ -1142,7 +1598,13 @@
 
     if (mode === 'plane') {
       const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
-      const res = { coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]], distance: dist, duration: null, isStraight: true, mode: mode };
+      const res = {
+        coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
+        distance: dist,
+        duration: null,
+        isStraight: true,
+        mode: mode
+      };
       window.routeCache[cacheKey] = res;
       saveCache("shimaneko_route_cache_v2", window.routeCache);
       return res;
@@ -1160,7 +1622,13 @@
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
         const route = data.routes[0];
         const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-        const result = { coords: coords, distance: route.distance, duration: route.duration, isStraight: false, mode: mode };
+        const result = {
+          coords: coords,
+          distance: route.distance,
+          duration: route.duration,
+          isStraight: false,
+          mode: mode
+        };
         window.routeCache[cacheKey] = result;
         saveCache("shimaneko_route_cache_v2", window.routeCache);
         return result;
@@ -1170,7 +1638,13 @@
     }
 
     const dist = calcStraightDistance(spotA.lat, spotA.lng, spotB.lat, spotB.lng);
-    return { coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]], distance: dist, duration: null, isStraight: true, mode: mode };
+    return {
+      coords: [[spotA.lat, spotA.lng], [spotB.lat, spotB.lng]],
+      distance: dist,
+      duration: null,
+      isStraight: true,
+      mode: mode
+    };
   }
 
   async function drawMapRoutesAndUpdateDistances(daySpots) {
@@ -1191,27 +1665,23 @@
         if (spotA.trainRoute && spotA.trainRoute.dep && spotA.trainRoute.arr) {
           segmentPromises.push(
             fetchRailwayGeometry(spotA.trainRoute.dep, spotA.trainRoute.arr).then(railSeg => ({
-              type: 'train_ready', spotA, dep: spotA.trainRoute.dep, arr: spotA.trainRoute.arr, railSeg
+              type: 'train_ready',
+              spotA,
+              dep: spotA.trainRoute.dep,
+              arr: spotA.trainRoute.arr,
+              railSeg
             }))
           );
         } else {
-          segmentPromises.push(Promise.resolve({ type: 'transit_unset', spotA, mode }));
-        }
-      } else if (mode === 'bus') {
-        if (spotA.busRoute && spotA.busRoute.dep && spotA.busRoute.arr) {
-          const simMode = { ...spotA, transportToNext: 'car' }; 
-          segmentPromises.push(
-            fetchRouteSegment(spotA.busRoute.dep, spotA.busRoute.arr, simMode).then(segment => ({
-              type: 'bus_ready', spotA, dep: spotA.busRoute.dep, arr: spotA.busRoute.arr, segment
-            }))
-          );
-        } else {
-          segmentPromises.push(Promise.resolve({ type: 'transit_unset', spotA, mode }));
+          segmentPromises.push(Promise.resolve({ type: 'train_unset', spotA }));
         }
       } else {
         segmentPromises.push(
           fetchRouteSegment(spotA, spotB).then(segment => ({
-            type: 'normal', spotA, mode, segment
+            type: 'normal',
+            spotA,
+            mode,
+            segment
           }))
         );
       }
@@ -1229,32 +1699,26 @@
 
       if (item.type === 'train_ready') {
         const lineRail = L.polyline(item.railSeg.coords, {
-          color: '#8b5cf6', weight: 5, opacity: 0.9, lineJoin: 'round'
+          color: '#8b5cf6',
+          weight: 5,
+          opacity: 0.9,
+          lineJoin: 'round'
         }).addTo(window.map);
         window.routeLayers.push(lineRail);
 
         addStationPin(item.dep.lat, item.dep.lng, item.dep.name);
         addStationPin(item.arr.lat, item.arr.lng, item.arr.name);
 
-        if (badgeEl) badgeEl.innerHTML = `🚃 ${item.dep.name} → ${item.arr.name} (線路 約 ${formatDistance(item.railSeg.distance)})`;
+        if (badgeEl) {
+          badgeEl.innerHTML = `🚃 ${item.dep.name} → ${item.arr.name} (線路 約 ${formatDistance(item.railSeg.distance)})`;
+        }
         continue;
       }
 
-      if (item.type === 'bus_ready') {
-        const polyline = L.polyline(item.segment.coords, {
-          color: '#10b981', weight: 5, opacity: 0.9, lineJoin: 'round'
-        }).addTo(window.map);
-        window.routeLayers.push(polyline);
-
-        addStationPin(item.dep.lat, item.dep.lng, item.dep.name); 
-        addStationPin(item.arr.lat, item.arr.lng, item.arr.name);
-
-        if (badgeEl) badgeEl.innerHTML = `🚌 ${item.dep.name} → ${item.arr.name} (道路 約 ${formatDistance(item.segment.distance)})`;
-        continue;
-      }
-
-      if (item.type === 'transit_unset') {
-        if (badgeEl) badgeEl.innerHTML = item.mode === 'train' ? `🚃 発車・到着駅を選択してください` : `🚌 乗車・降車バス停を選択してください`;
+      if (item.type === 'train_unset') {
+        if (badgeEl) {
+          badgeEl.innerHTML = `🚃 発車駅・到着駅を選択してください`;
+        }
         continue;
       }
 
@@ -1266,7 +1730,11 @@
       if (mode === 'plane') lineColor = '#ec4899';
 
       const polyline = L.polyline(segment.coords, {
-        color: lineColor, weight: 5, opacity: 0.85, dashArray: segment.isStraight ? '8, 8' : null, lineJoin: 'round'
+        color: lineColor,
+        weight: 5,
+        opacity: 0.85,
+        dashArray: segment.isStraight ? '8, 8' : null,
+        lineJoin: 'round'
       }).addTo(window.map);
       window.routeLayers.push(polyline);
 
@@ -1282,6 +1750,7 @@
         }
       }
     }
+
     lucide.createIcons();
   }
 
@@ -1309,139 +1778,129 @@
         });
       })
     );
+
+    await recordActivityLog(
+      "みちのりの順番を変更",
+      `${spotA.name} ⇄ ${spotB.name}`,
+      `${spotA.date} ${spotA.time} の順番を入れ替え`
+    );
   };
 
-  const modes = [
-    { key: 'walk', label: '🚶 徒歩' },
-    { key: 'bike', label: '🚲 自転車' },
-    { key: 'train', label: '🚃 電車' },
-    { key: 'bus', label: '🚌 バス' },
-    { key: 'car', label: '🚗 車・タクシー' },
-    { key: 'plane', label: '✈️ 飛行機' }
-  ];
-
   window.updateTransport = async function(id, mode) {
-    if (mode === 'train' || mode === 'bus') {
-      openTransitModal(id, mode);
+    if (mode === 'train') {
+      openStationModal(id);
       return;
     }
     await updateDoc(doc(db, "pins", id), { transportToNext: mode });
   };
 
-  window.openTransitModal = function(spotId, mode) {
+  window.openStationModal = function(spotId) {
     const spot = window.spots.find(s => s.id === spotId);
     if (!spot) return;
 
-    document.getElementById('transitSpotId').value = spotId;
-    document.getElementById('transitMode').value = mode;
-    document.getElementById('depTransitResults').innerHTML = "";
-    document.getElementById('arrTransitResults').innerHTML = "";
+    document.getElementById('stationSpotId').value = spotId;
+    document.getElementById('depStationResults').innerHTML = "";
+    document.getElementById('arrStationResults').innerHTML = "";
 
-    const isTrain = mode === 'train';
-    document.getElementById('transitModalTitle').innerHTML = isTrain ? '🚃 発車・到着駅を選択' : '🚌 乗車・降車バス停を選択';
-    document.getElementById('transitModalDesc').textContent = isTrain ? '線路の上にルートを引きます' : '道路上にバスのルートを引きます';
-    document.getElementById('depTransitLabel').textContent = isTrain ? '🚉 発車駅' : '🚏 乗車バス停';
-    document.getElementById('arrTransitLabel').textContent = isTrain ? '🏁 到着駅' : '🏁 降車バス停';
-    document.getElementById('btnSaveTransit').className = `w-2/3 py-2.5 rounded-xl text-white font-bold shadow-sm ${isTrain ? 'bg-purple-600' : 'bg-emerald-600'}`;
-
-    const routeData = isTrain ? spot.trainRoute : spot.busRoute;
-
-    if (routeData && routeData.dep && routeData.arr) {
-      document.getElementById('depTransitInput').value = routeData.dep.name;
-      document.getElementById('depTransitName').value = routeData.dep.name;
-      document.getElementById('depTransitLat').value = routeData.dep.lat;
-      document.getElementById('depTransitLng').value = routeData.dep.lng;
-      const depLbl = document.getElementById('depTransitSelectedLabel');
-      depLbl.textContent = `✓ 選択済: ${routeData.dep.name}`;
+    if (spot.trainRoute && spot.trainRoute.dep && spot.trainRoute.arr) {
+      document.getElementById('depStationInput').value = spot.trainRoute.dep.name;
+      document.getElementById('depStationName').value = spot.trainRoute.dep.name;
+      document.getElementById('depStationLat').value = spot.trainRoute.dep.lat;
+      document.getElementById('depStationLng').value = spot.trainRoute.dep.lng;
+      const depLbl = document.getElementById('depStationSelectedLabel');
+      depLbl.textContent = `✓ 選択済: ${spot.trainRoute.dep.name}`;
       depLbl.classList.remove('hidden');
 
-      document.getElementById('arrTransitInput').value = routeData.arr.name;
-      document.getElementById('arrTransitName').value = routeData.arr.name;
-      document.getElementById('arrTransitLat').value = routeData.arr.lat;
-      document.getElementById('arrTransitLng').value = routeData.arr.lng;
-      const arrLbl = document.getElementById('arrTransitSelectedLabel');
-      arrLbl.textContent = `✓ 選択済: ${routeData.arr.name}`;
+      document.getElementById('arrStationInput').value = spot.trainRoute.arr.name;
+      document.getElementById('arrStationName').value = spot.trainRoute.arr.name;
+      document.getElementById('arrStationLat').value = spot.trainRoute.arr.lat;
+      document.getElementById('arrStationLng').value = spot.trainRoute.arr.lng;
+      const arrLbl = document.getElementById('arrStationSelectedLabel');
+      arrLbl.textContent = `✓ 選択済: ${spot.trainRoute.arr.name}`;
       arrLbl.classList.remove('hidden');
     } else {
-      document.getElementById('depTransitInput').value = "";
-      document.getElementById('depTransitSelectedLabel').classList.add('hidden');
-      document.getElementById('arrTransitInput').value = "";
-      document.getElementById('arrTransitSelectedLabel').classList.add('hidden');
+      document.getElementById('depStationInput').value = "";
+      document.getElementById('depStationName').value = "";
+      document.getElementById('depStationLat').value = "";
+      document.getElementById('depStationLng').value = "";
+      document.getElementById('depStationSelectedLabel').classList.add('hidden');
+
+      document.getElementById('arrStationInput').value = "";
+      document.getElementById('arrStationName').value = "";
+      document.getElementById('arrStationLat').value = "";
+      document.getElementById('arrStationLng').value = "";
+      document.getElementById('arrStationSelectedLabel').classList.add('hidden');
     }
-    document.getElementById('transitModal').classList.remove('hidden');
+
+    document.getElementById('stationModal').classList.remove('hidden');
+    lucide.createIcons();
   };
 
-  window.closeTransitModal = () => document.getElementById('transitModal').classList.add('hidden');
+  window.closeStationModal = () => document.getElementById('stationModal').classList.add('hidden');
 
-  window.searchTransit = async function(type) {
-    const mode = document.getElementById('transitMode').value;
-    const inputEl = document.getElementById(type === 'dep' ? 'depTransitInput' : 'arrTransitInput');
-    const ul = document.getElementById(type === 'dep' ? 'depTransitResults' : 'arrTransitResults');
+  window.searchStation = async function(type) {
+    const inputEl = document.getElementById(type === 'dep' ? 'depStationInput' : 'arrStationInput');
+    const ul = document.getElementById(type === 'dep' ? 'depStationResults' : 'arrStationResults');
     const raw = inputEl.value.trim();
     if (!raw) return;
 
     ul.innerHTML = `<li class="p-2 text-slate-400">検索中...</li>`;
-    ul.classList.remove('hidden');
-    let queryStr = raw;
-    if (mode === 'train' && !raw.endsWith('駅')) queryStr += ' 駅';
-    if (mode === 'bus' && !raw.endsWith('バス停') && !raw.endsWith('センター')) queryStr += ' バス停';
-
+    const queryStr = raw.endsWith('駅') ? raw : `${raw} 駅`;
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&countrycodes=jp`);
     const data = await res.json();
 
     ul.innerHTML = "";
     if (data.length > 0) {
       data.slice(0, 5).forEach(item => {
-        const name = item.display_name.split(',')[0];
+        const stName = item.display_name.split(',')[0];
         const li = document.createElement('li');
-        li.className = `p-2 hover:bg-slate-50 cursor-pointer flex justify-between items-center`;
-        li.innerHTML = `<span class="font-bold text-slate-700">${mode === 'train' ? '🚉' : '🚏'} ${name}</span><span class="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">選択</span>`;
+        li.className = "p-2 hover:bg-purple-50 cursor-pointer flex justify-between items-center";
+        li.innerHTML = `<span class="font-bold text-slate-700">🚉 ${stName}</span><span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">選択</span>`;
         li.onclick = () => {
-          document.getElementById(`${type}TransitName`).value = name;
-          document.getElementById(`${type}TransitLat`).value = item.lat;
-          document.getElementById(`${type}TransitLng`).value = item.lon;
-          inputEl.value = name;
-          const lbl = document.getElementById(`${type}TransitSelectedLabel`);
-          lbl.textContent = `✓ 選択済: ${name}`;
+          document.getElementById(`${type}StationName`).value = stName;
+          document.getElementById(`${type}StationLat`).value = item.lat;
+          document.getElementById(`${type}StationLng`).value = item.lon;
+          inputEl.value = stName;
+          const lbl = document.getElementById(`${type}StationSelectedLabel`);
+          lbl.textContent = `✓ 選択済: ${stName}`;
           lbl.classList.remove('hidden');
-          ul.classList.add('hidden');
+          ul.innerHTML = "";
         };
         ul.appendChild(li);
       });
     } else {
-      ul.innerHTML = `<li class="p-2 text-slate-400">見つかりませんでした</li>`;
+      ul.innerHTML = `<li class="p-2 text-slate-400">駅が見つかりませんでした</li>`;
     }
   };
 
-  window.saveTransitRoute = async function(e) {
+  window.saveStationRoute = async function(e) {
     e.preventDefault();
-    const id = document.getElementById('transitSpotId').value;
-    const mode = document.getElementById('transitMode').value;
-    const depLat = parseFloat(document.getElementById('depTransitLat').value);
-    const depLng = parseFloat(document.getElementById('depTransitLng').value);
-    const depName = document.getElementById('depTransitName').value;
+    const id = document.getElementById('stationSpotId').value;
+    const depLat = parseFloat(document.getElementById('depStationLat').value);
+    const depLng = parseFloat(document.getElementById('depStationLng').value);
+    const depName = document.getElementById('depStationName').value;
 
-    const arrLat = parseFloat(document.getElementById('arrTransitLat').value);
-    const arrLng = parseFloat(document.getElementById('arrTransitLng').value);
-    const arrName = document.getElementById('arrTransitName').value;
+    const arrLat = parseFloat(document.getElementById('arrStationLat').value);
+    const arrLng = parseFloat(document.getElementById('arrStationLng').value);
+    const arrName = document.getElementById('arrStationName').value;
 
-    if (!depLat || !arrLat) return alert("発車地と到着地を検索してリストから選択してください。");
+    if (!depLat || !arrLat) {
+      alert("発車駅と到着駅を検索してリストから選択してください。");
+      return;
+    }
 
-    const routeObj = {
-      dep: { name: depName, lat: depLat, lng: depLng },
-      arr: { name: arrName, lat: arrLat, lng: arrLng }
-    };
-    
-    const updateObj = { transportToNext: mode };
-    if (mode === 'train') updateObj.trainRoute = routeObj;
-    if (mode === 'bus') updateObj.busRoute = routeObj;
+    await updateDoc(doc(db, "pins", id), {
+      transportToNext: 'train',
+      trainRoute: {
+        dep: { name: depName, lat: depLat, lng: depLng },
+        arr: { name: arrName, lat: arrLat, lng: arrLng }
+      }
+    });
 
-    await updateDoc(doc(db, "pins", id), updateObj);
-    closeTransitModal();
+    closeStationModal();
   };
 
   window.toggleSearch = function() { document.getElementById('searchContainer').classList.toggle('hidden'); };
-  
   window.executeSearch = async function() {
     const val = document.getElementById('searchInput').value.trim();
     if(!val) return;
@@ -1465,8 +1924,6 @@
 
   window.switchMainTab = function(tab) {
     window.currentMainTab = tab;
-    document.getElementById('searchContainer').classList.add('hidden');
-
     const considerPanel = document.getElementById('consider-panel');
     const timelinePanel = document.getElementById('timeline-panel');
     const uiLayer = document.getElementById('ui-layer');
@@ -1475,7 +1932,7 @@
     const btnMap = document.getElementById('navBtnMap');
     const btnRoute = document.getElementById('navBtnRoute');
 
-    btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px] relative";
+    btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
     btnMap.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
     btnRoute.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-400 font-bold text-[11px]";
 
@@ -1483,7 +1940,7 @@
       considerPanel.classList.replace('panel-hidden', 'panel-visible');
       timelinePanel.classList.replace('panel-visible', 'panel-hidden');
       uiLayer.style.display = 'none';
-      btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-rose-500 font-extrabold text-[11px] relative";
+      btnConsider.className = "flex-1 py-2 flex flex-col items-center justify-center gap-0.5 text-rose-500 font-extrabold text-[11px]";
       renderConsiderTimeline();
     } else if (tab === 'map') {
       considerPanel.classList.replace('panel-visible', 'panel-hidden');
@@ -1532,33 +1989,16 @@
       const pinBg = isConsider ? "#ef4444" : "#38bdf8";
       let iconHtml = `<div class="custom-pin ${ext}" style="background-color:${pinBg}; width:34px; height:34px; font-size:17px;">${spot.iconEmoji || '📍'}</div>`;
 
-      // ドラッグ&ドロップ移動の有効化 (draggable: true)
       let marker = L.marker([spot.lat, spot.lng], {
         icon: L.divIcon({ html: iconHtml, className: '', iconSize: [34,34], iconAnchor:[17,34] }),
-        zIndexOffset: isConsider ? 200 : 100,
-        draggable: true
+        zIndexOffset: isConsider ? 200 : 100
       }).addTo(window.map);
-      
-      // ピンをドラッグして位置を更新
-      marker.on('dragend', async function(e) {
-        const newPos = e.target.getLatLng();
-        if (confirm(`「${spot.name}」のピンをこの位置に移動しますか？\n(キャンセルすると元の位置に戻ります)`)) {
-          await updateDoc(doc(db, "pins", spot.id), {
-            lat: newPos.lat,
-            lng: newPos.lng
-          });
-        } else {
-          e.target.setLatLng([spot.lat, spot.lng]); // キャンセル時は元の位置に戻す
-        }
-      });
       
       let prioText = isConsider
         ? '💡 検討リスト'
         : (spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1)));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 underline block mt-0.5">🔗 URLを開く</a>`).join('');
-      
-      // 写真拡大機能を追加
-      let photoHtml = spot.photo ? `<img src="${spot.photo}" onclick="openPhotoModal('${spot.photo}')" class="w-full max-h-28 object-cover rounded-lg my-1 border border-slate-200 cursor-pointer active:opacity-75 transition-opacity">` : '';
+      let photoHtml = spot.photo ? `<img src="${spot.photo}" class="w-full max-h-28 object-cover rounded-lg my-1 border border-slate-200">` : '';
 
       const sameTimeList = window.spots.filter(s => !isConsiderSpot(s) && s.date === spot.date && s.time === spot.time);
       const orderLabel = (!isConsider && sameTimeList.length > 1) ? ` ${toCircledNum(sameTimeList.findIndex(s => s.id === spot.id) + 1)}` : '';
@@ -1639,12 +2079,11 @@
     }
 
     list.innerHTML = candidates.map(spot => {
+      const isMySpot = spot.recordedBy === window.currentUser;
       const likes = Array.isArray(spot.likes) ? spot.likes : [];
       const iLiked = likes.includes(window.currentUser);
       const urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-600 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
-      
-      // 写真拡大機能を追加
-      const photoHtml = spot.photo ? `<img src="${spot.photo}" onclick="openPhotoModal('${spot.photo}')" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs cursor-pointer active:opacity-75 transition-opacity">` : '';
+      const photoHtml = spot.photo ? `<img src="${spot.photo}" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs">` : '';
 
       const likesBadges = likes.length > 0
         ? likes.map(u => `<span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">👍 ${u}</span>`).join(' ')
@@ -1661,7 +2100,7 @@
             <button onclick="focusSpotOnMap('${spot.id}')" title="地図で見る" class="text-sky-600 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-0.5">
               <i data-lucide="map-pin" class="w-3 h-3"></i>地図
             </button>
-            <button onclick="deleteSpot('${spot.id}')" title="候補を削除" class="text-rose-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            ${isMySpot ? `<button onclick="deleteSpot('${spot.id}')" title="候補を削除" class="text-rose-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
           </div>
         </div>
 
@@ -1735,6 +2174,7 @@
   window.submitPromoteSpot = async function(e) {
     e.preventDefault();
     const spotId = document.getElementById('promoteSpotId').value;
+    const spot = window.spots.find(s => s.id === spotId);
     const newDate = document.getElementById('promoteDate').value;
     const newTime = document.getElementById('promoteTime').value;
     const newPriority = document.getElementById('promotePriority').value;
@@ -1750,17 +2190,28 @@
       sortTime: buildSortTime(newDate, newTime, nextOrder)
     });
 
+    await recordActivityLog(
+      "検討リストから「みちのり」へ採用",
+      spot ? spot.name : "",
+      `${newDate} ${newTime} に確定`
+    );
+
     closePromoteModal();
     window.currentDayTab = newDate;
     switchMainTab('route');
   };
 
   window.demoteToConsider = async function(spotId) {
+    const spot = window.spots.find(s => s.id === spotId);
     if (!confirm("このスポットを「検討リスト（赤ピン）」に戻しますか？")) return;
     await updateDoc(doc(db, "pins", spotId), {
       priority: 'consider',
       transportToNext: ''
     });
+    await recordActivityLog(
+      "みちのりから「検討リスト」へ戻す",
+      spot ? spot.name : ""
+    );
   };
 
   function renderRouteTimeline(autoScroll = false) {
@@ -1772,6 +2223,7 @@
     list.innerHTML = daySpots.map((spot, index) => {
       const isDone = spot.status === 'done';
       const isCancel = spot.status === 'cancel';
+      const isMySpot = spot.recordedBy === window.currentUser;
 
       if(!isDone && !isCancel && firstUnfinishedIndex === -1) {
         firstUnfinishedIndex = index;
@@ -1797,9 +2249,7 @@
 
       let prioText = spot.priority === 'reserved' ? '✅ 予約済み' : ('★'.repeat(spot.priority||1) + '☆'.repeat(3-(spot.priority||1)));
       let urlsHtml = (spot.urls || []).filter(u=>u).map(u => `<a href="${u}" target="_blank" class="text-sky-500 hover:underline inline-flex items-center gap-1 mt-1 break-all bg-sky-50 px-2 py-1 rounded-md w-full font-semibold"><i data-lucide="external-link" class="w-3 h-3"></i>URLをひらく</a>`).join('');
-      
-      // 写真拡大機能を追加
-      let photoHtml = spot.photo ? `<img src="${spot.photo}" onclick="openPhotoModal('${spot.photo}')" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs cursor-pointer active:opacity-75 transition-opacity">` : '';
+      let photoHtml = spot.photo ? `<img src="${spot.photo}" class="mt-2 rounded-xl max-h-44 object-cover w-full border border-slate-200 shadow-xs">` : '';
       
       let evalsHtml = "";
       if (Array.isArray(spot.evaluations) && spot.evaluations.length > 0) {
@@ -1837,13 +2287,17 @@
         const straightDist = formatDistance(calcStraightDistance(spot.lat, spot.lng, nextSpot.lat, nextSpot.lng));
         const currentMode = spot.transportToNext || "";
         
+        const modes = [
+          { key: 'walk', label: '🚶 徒歩' },
+          { key: 'bike', label: '🚲 自転車' },
+          { key: 'train', label: '🚃 電車・バス' },
+          { key: 'car', label: '🚗 シェアカー' },
+          { key: 'plane', label: '✈️ 飛行機' }
+        ];
+
         const modeButtons = modes.map(m => {
           const active = currentMode === m.key;
-          let btnColor = 'bg-sky-500 text-white shadow-sm';
-          if (active && m.key === 'train') btnColor = 'bg-purple-600 text-white shadow-sm';
-          if (active && m.key === 'bus') btnColor = 'bg-emerald-600 text-white shadow-sm';
-
-          return `<button onclick="updateTransport('${spot.id}', '${(active && m.key !== 'train' && m.key !== 'bus') ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? btnColor : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
+          return `<button onclick="updateTransport('${spot.id}', '${(active && m.key !== 'train') ? '' : m.key}')" class="px-2 py-1 rounded-full text-[10px] font-bold transition ${active ? (m.key === 'train' ? 'bg-purple-600 text-white shadow-sm' : 'bg-sky-500 text-white shadow-sm') : 'bg-white text-slate-500 border border-slate-200 hover:bg-sky-50'}">${m.label}</button>`;
         }).join('');
 
         let trainInfoHtml = "";
@@ -1851,14 +2305,7 @@
           trainInfoHtml = `
           <div class="flex items-center gap-1.5 text-[10px] text-purple-700 font-bold">
             <span class="bg-purple-100 px-2 py-0.5 rounded-full">🚉 ${spot.trainRoute.dep.name} ➔ ${spot.trainRoute.arr.name}</span>
-            <button onclick="openTransitModal('${spot.id}', 'train')" class="underline text-purple-600">駅変更</button>
-            <button onclick="updateTransport('${spot.id}', '')" class="text-slate-400 hover:text-rose-500">解除</button>
-          </div>`;
-        } else if (currentMode === 'bus' && spot.busRoute && spot.busRoute.dep && spot.busRoute.arr) {
-          trainInfoHtml = `
-          <div class="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold">
-            <span class="bg-emerald-100 px-2 py-0.5 rounded-full">🚏 ${spot.busRoute.dep.name} ➔ ${spot.busRoute.arr.name}</span>
-            <button onclick="openTransitModal('${spot.id}', 'bus')" class="underline text-emerald-600">バス停変更</button>
+            <button onclick="openStationModal('${spot.id}')" class="underline text-purple-600">駅変更</button>
             <button onclick="updateTransport('${spot.id}', '')" class="text-slate-400 hover:text-rose-500">解除</button>
           </div>`;
         }
@@ -1890,7 +2337,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <span class="${spot.priority==='reserved'?'text-rose-500':'text-amber-400'} font-bold">${prioText}</span>
-              <button onclick="deleteSpot('${spot.id}')" title="予定を削除" class="text-rose-400 hover:text-rose-600 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+              ${isMySpot ? `<button onclick="deleteSpot('${spot.id}')" title="自分の予定を削除" class="text-rose-400 hover:text-rose-600 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
             </div>
           </div>
           <div>
@@ -1963,6 +2410,7 @@
     const newKey = 'food_' + Date.now();
     const updated = [...window.foodCategories, { key: newKey, emoji, name, isDefault: false }];
     await setDoc(foodConfigDocRef, { items: updated });
+    await recordActivityLog("グルメ項目を追加", `${emoji} ${name}`);
 
     document.getElementById('newFoodEmoji').value = '';
     document.getElementById('newFoodName').value = '';
@@ -1984,6 +2432,7 @@
       i === idx ? { ...item, emoji: newEmoji, name: newName } : item
     );
     await setDoc(foodConfigDocRef, { items: updated });
+    await recordActivityLog("グルメ項目を編集", `${newEmoji} ${newName}`);
   };
 
   window.deleteFoodCategory = async function(idx) {
@@ -1993,56 +2442,30 @@
 
     const updated = window.foodCategories.filter((_, i) => i !== idx);
     await setDoc(foodConfigDocRef, { items: updated });
+    await recordActivityLog("グルメ項目を削除", `${target.emoji} ${target.name}`);
   };
 
   window.updateStatus = async function(id, st) {
     const spot = window.spots.find(s=>s.id===id);
-    await updateDoc(doc(db, "pins", id), { status: spot.status===st ? 'pending' : st });
+    const nextStatus = spot.status===st ? 'pending' : st;
+    await updateDoc(doc(db, "pins", id), { status: nextStatus });
+    await recordActivityLog(
+      nextStatus === 'done' ? "「✓ 行った」にチェック" : "「✓ 行った」を解除",
+      spot ? spot.name : ""
+    );
   };
 
   window.deleteSpot = async function(id) {
     const spot = window.spots.find(s => s.id === id);
     if (!spot) return;
-    if(confirm("このスポットを削除しますか？")) {
-      await deleteDoc(doc(db, "pins", id));
+    if (spot.recordedBy !== window.currentUser) {
+      alert("自分が登録した予定のみ削除できます。");
+      return;
     }
-  };
-
-  window.searchEditSpotLocation = async function() {
-    const inputEl = document.getElementById('editSpotSearchInput');
-    const ul = document.getElementById('editSpotSearchResults');
-    const successMsg = document.getElementById('editSpotLocationSuccess');
-    const val = inputEl.value.trim();
-    if (!val) return;
-
-    ul.innerHTML = `<li class="p-2 text-slate-400">検索中...</li>`;
-    ul.classList.remove('hidden');
-    successMsg.classList.add('hidden');
-
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=jp`);
-    const data = await res.json();
-
-    ul.innerHTML = "";
-    if (data.length > 0) {
-      data.slice(0, 5).forEach(item => {
-        const placeName = item.display_name.split(',')[0];
-        const li = document.createElement('li');
-        li.className = "p-2 hover:bg-sky-50 cursor-pointer flex justify-between items-center";
-        li.innerHTML = `<span class="font-bold text-slate-700">${placeName}</span><span class="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">ここに決定</span>`;
-        li.onclick = () => {
-          document.getElementById('spotLat').value = item.lat;
-          document.getElementById('spotLng').value = item.lon;
-          if (confirm(`スポット名も「${placeName}」に変更しますか？\n(キャンセルで座標のみ変更)`)) {
-            document.getElementById('spotName').value = placeName;
-          }
-          ul.classList.add('hidden');
-          inputEl.value = "";
-          successMsg.classList.remove('hidden');
-        };
-        ul.appendChild(li);
-      });
-    } else {
-      ul.innerHTML = `<li class="p-2 text-slate-400">見つかりませんでした</li>`;
+    if(confirm("自分が登録したこのスポットを削除しますか？")) {
+      const targetLabel = isConsiderSpot(spot) ? "検討リスト" : "みちのり";
+      await deleteDoc(doc(db, "pins", id));
+      await recordActivityLog(`${targetLabel}から削除`, spot.name);
     }
   };
 
@@ -2089,10 +2512,6 @@
   window.openAddModal = function(lat, lng, name="", defaultConsider = false) {
     document.getElementById('spotForm').reset();
     document.getElementById('editSpotId').value = "";
-    document.getElementById('editSpotSearchInput').value = "";
-    document.getElementById('editSpotSearchResults').classList.add('hidden');
-    document.getElementById('editSpotLocationSuccess').classList.add('hidden');
-    
     window.clearPhoto();
     document.getElementById('modalTitle').innerHTML = defaultConsider
       ? `<i data-lucide="sparkles" class="w-5 h-5 text-rose-500"></i>検討リストに候補を追加`
@@ -2122,10 +2541,6 @@
 
     document.getElementById('spotForm').reset();
     document.getElementById('editSpotId').value = spot.id;
-    document.getElementById('editSpotSearchInput').value = "";
-    document.getElementById('editSpotSearchResults').classList.add('hidden');
-    document.getElementById('editSpotLocationSuccess').classList.add('hidden');
-
     document.getElementById('modalTitle').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-sky-500"></i>予定を編集`;
     document.getElementById('spotName').value = spot.name || "";
     document.getElementById('spotGenre').value = spot.genre || "sightseeing";
@@ -2173,11 +2588,15 @@
   window.saveSpot = async function(e) {
     e.preventDefault();
     const editId = document.getElementById('editSpotId').value;
+    const oldSpot = editId ? window.spots.find(s => s.id === editId) : null;
     const urls = Array.from(document.querySelectorAll('.spotUrlInput')).map(i=>i.value.trim()).filter(v=>v!=="");
     const dateVal = document.getElementById('spotDate').value;
     const timeVal = document.getElementById('spotTime').value;
     const priorityVal = document.getElementById('spotPriority').value;
     const genreVal = document.getElementById('spotGenre').value;
+    const nameVal = document.getElementById('spotName').value;
+    const commentVal = document.getElementById('spotComment').value;
+    const photoVal = window.currentPhotoBase64 || null;
     const orderVal = parseInt(document.getElementById('spotOrder').value, 10) || 1;
 
     const othersSameTime = window.spots
@@ -2187,7 +2606,7 @@
     const finalOrder = targetIndex + 1;
 
     const spotData = {
-      name: document.getElementById('spotName').value,
+      name: nameVal,
       genre: genreVal,
       date: dateVal,
       time: timeVal,
@@ -2195,9 +2614,9 @@
       sortTime: buildSortTime(dateVal, timeVal, finalOrder),
       priority: priorityVal,
       iconEmoji: document.getElementById('spotEmoji').value,
-      comment: document.getElementById('spotComment').value,
+      comment: commentVal,
       urls: urls,
-      photo: window.currentPhotoBase64 || null,
+      photo: photoVal,
       lat: parseFloat(document.getElementById('spotLat').value),
       lng: parseFloat(document.getElementById('spotLng').value)
     };
@@ -2230,6 +2649,42 @@
     }
 
     await Promise.all(batchUpdates);
+
+    if (!editId) {
+      const destLabel = priorityVal === 'consider' ? '検討リスト' : 'みちのり';
+      const extra = [
+        `${dateVal} ${timeVal}`,
+        photoVal ? '写真あり' : '',
+        commentVal ? `メモ: ${commentVal}` : ''
+      ].filter(Boolean).join(' / ');
+      await recordActivityLog(`「${destLabel}」に新規追加`, nameVal, extra);
+    } else if (oldSpot) {
+      const changes = [];
+      if ((oldSpot.name || '') !== nameVal) changes.push(`名前変更 (${oldSpot.name} → ${nameVal})`);
+      if ((oldSpot.date || '') !== dateVal || (oldSpot.time || '') !== timeVal) {
+        changes.push(`日時変更 (${oldSpot.date} ${oldSpot.time} → ${dateVal} ${timeVal})`);
+      }
+      if ((oldSpot.priority || '') !== priorityVal) {
+        changes.push(priorityVal === 'consider' ? '検討リストへ変更' : 'みちのりへ変更');
+      }
+      if ((oldSpot.comment || '') !== commentVal) {
+        changes.push(commentVal ? `メモ更新: ${commentVal}` : 'メモ削除');
+      }
+      if ((oldSpot.photo || null) !== photoVal) {
+        if (!oldSpot.photo && photoVal) changes.push('写真を追加');
+        else if (oldSpot.photo && !photoVal) changes.push('写真を削除');
+        else changes.push('写真を変更');
+      }
+      if (JSON.stringify(oldSpot.urls || []) !== JSON.stringify(urls)) {
+        changes.push('参考URLを更新');
+      }
+      await recordActivityLog(
+        "スポット内容を編集",
+        nameVal,
+        changes.length > 0 ? changes.join(' / ') : '内容を更新'
+      );
+    }
+
     closeAddModal();
   };
 
@@ -2280,12 +2735,17 @@
     let evaluations = Array.isArray(spot.evaluations) ? [...spot.evaluations] : [];
 
     const myIndex = evaluations.findIndex(ev => ev.user === currentUser);
+    const ratingVal = parseInt(document.getElementById('evalRating').value);
+    const commentVal = document.getElementById('evalComment').value.trim();
+    const foodTypeVal = document.getElementById('evalFoodType').value;
+    const foodCountVal = parseInt(document.getElementById('evalFoodCount').value) || 1;
+
     const newEval = {
       user: currentUser,
-      rating: parseInt(document.getElementById('evalRating').value),
-      comment: document.getElementById('evalComment').value.trim(),
-      foodType: document.getElementById('evalFoodType').value,
-      foodCount: parseInt(document.getElementById('evalFoodCount').value) || 1
+      rating: ratingVal,
+      comment: commentVal,
+      foodType: foodTypeVal,
+      foodCount: foodCountVal
     };
 
     if (myIndex !== -1) {
@@ -2298,6 +2758,20 @@
       evaluations: evaluations,
       status: 'done'
     });
+
+    const foodStr = foodTypeVal ? `${getFoodDisplay(foodTypeVal)} ×${foodCountVal}` : '';
+    const detailParts = [
+      `★${ratingVal}`,
+      foodStr,
+      commentVal ? `コメント: ${commentVal}` : ''
+    ].filter(Boolean).join(' / ');
+
+    await recordActivityLog(
+      myIndex !== -1 ? "評価・コメントを更新" : "評価・グルメを新規記録",
+      spot.name,
+      detailParts
+    );
+
     closeEvalModal();
   };
 
@@ -2317,6 +2791,7 @@
     }
 
     await updateDoc(doc(db, "pins", id), updateData);
+    await recordActivityLog("自分の評価・コメントを削除", spot.name);
     closeEvalModal();
   };
 
@@ -2339,6 +2814,7 @@
     }
 
     await updateDoc(doc(db, "pins", spotId), updateData);
+    await recordActivityLog("自分の評価・コメントを削除", spot.name);
   };
 
   window.resetToDefaultBounds = function() {
